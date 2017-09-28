@@ -1,0 +1,12 @@
+id_rsa
+.DS_Store
+id_rsa.pub
+dll.js
+manifest.json
+node_modules
+dist
+*.log
+packages/**/*
+
+# Serverless directories
+.serverless
