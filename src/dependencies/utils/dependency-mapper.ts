@@ -1,25 +1,6 @@
 import * as pacote from 'pacote';
 
 /**
- * Checks if all peer dependencies are in the package dependencies
- *
- * @param {IDependencies} dependencies
- * @param {IDependencies} peerDependencies
- */
-function checkPeerDependencies(
-  dependencies: IDependencies,
-  peerDependencies: Object
-) {
-  const peerDeps = Object.keys(peerDependencies);
-  for (let i = 0; i < peerDeps.length; i++) {
-    // If the peer dependency is missing
-    if (!dependencies[peerDeps[i]]) {
-      throw new Error(`Missing peer dependency: '${peerDeps[i]}'`);
-    }
-  }
-}
-
-/**
  * Gets the absolute versions of all dependencies
  *
  * @param {IDependencies} dependencies
@@ -36,10 +17,6 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
 
       try {
         const manifest = await pacote.manifest(depString);
-
-        if (manifest.peerDependencies) {
-          checkPeerDependencies(dependencies, manifest.peerDependencies);
-        }
 
         const absoluteVersion = manifest.version;
 
@@ -65,7 +42,6 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
  * @param {object} dependencies
  */
 export default async function mapDependencies(dependencies: IDependencies) {
-  console.log('oka');
   const absoluteDependencies = await getAbsoluteVersions(dependencies);
 
   return absoluteDependencies;

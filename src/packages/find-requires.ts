@@ -1,24 +1,25 @@
-import { join, dirname } from 'path';
-import { fs } from 'mz';
+import { fs } from "mz";
+import { dirname, join } from "path";
 
-import findAliases from './find-aliases';
-import extractRequires from './utils/extract-requires';
+import findAliases from "./find-aliases";
+import extractRequires from "./utils/extract-requires";
+import nodeResolvePath from "./utils/node-resolve-path";
 
-interface Aliases {
+interface IAliases {
   [alias: string]: string;
 }
 
-function resolvePath(path: string, currentPath: string, aliases: Aliases) {
-  const relativePath = join(dirname(currentPath), path);
+function rewritePath(path: string, currentPath: string, aliases: IAliases) {
+  const relativePath = nodeResolvePath(join(dirname(currentPath), path));
 
   if (/^(\w|@\w)/.test(path)) {
     // TODO check if this causes problems in windows
-    const parts = path.split('/');
+    const parts = path.split("/");
 
     let pathToAlias;
     let rest;
 
-    if (path.startsWith('@')) {
+    if (path.startsWith("@")) {
       pathToAlias = `${parts[0]}/${parts[1]}`;
       rest = parts.slice(2, parts.length);
     } else {
@@ -39,70 +40,78 @@ function resolvePath(path: string, currentPath: string, aliases: Aliases) {
   }
 }
 
-function getContents(path: string) {
-  if (fs.existsSync(path)) {
-    return fs.readFile(path);
-  } else if (fs.existsSync(path + '.js')) {
-    return fs.readFile(path + '.js');
-  } else if (fs.existsSync(path + '.json')) {
-    return fs.readFile(path + '.json');
-  }
-
-  throw new Error('Could not find ' + path);
-}
-
-async function getRequiresFromFile(
+function buildRequireObject(
   filePath: string,
   existingContents: { [path: string]: string },
-  aliases: Aliases
-): Promise<any> {
-  if (existingContents[filePath]) {
+  aliases: IAliases,
+): { [path: string]: string } {
+  const contents = getRequiresFromFile(filePath, existingContents, aliases);
+
+  if (!contents) {
     return existingContents;
   }
 
-  const contents = (await getContents(filePath)).toString();
+  return extractRequires(contents.content).reduce(
+    (total, requirePath) => {
+      const newPath = rewritePath(requirePath, filePath, aliases);
 
-  existingContents[filePath] = contents;
-
-  const requires = extractRequires(contents);
-
-  return Promise.all(
-    requires.map(require => {
-      if (/\.min\./.test(require)) {
-        return Promise.resolve();
+      if (!newPath) {
+        return total;
       }
 
-      return getRequiresFromFile(
-        resolvePath(require, filePath, aliases),
-        existingContents,
-        aliases
-      );
-    })
+      const requiredContents = buildRequireObject(newPath, total, aliases);
+
+      if (requiredContents !== existingContents) {
+        return { ...total, ...requiredContents };
+      }
+
+      return total;
+    },
+    { ...existingContents, [contents.path]: contents.content },
   );
+}
+
+function getRequiresFromFile(
+  filePath: string,
+  existingContents: { [path: string]: string },
+  aliases: IAliases,
+) {
+  const resolvedPath = nodeResolvePath(filePath);
+  if (!resolvedPath) {
+    console.log('Warning: could not find "' + filePath + '"');
+    return null;
+  }
+
+  if (existingContents[resolvedPath]) {
+    return null;
+  }
+
+  return {
+    content: fs.readFileSync(resolvedPath).toString(),
+    path: resolvedPath,
+  };
 }
 
 export default async function findRequires(
   packages: IDependencies,
-  packagePath: string
+  packagePath: string,
 ) {
   const aliases = await findAliases(packages, packagePath);
-  console.log(aliases);
 
-  const files = {};
+  return Object.keys(packages).reduce((total, packageName) => {
+    const newPath = rewritePath(
+      packageName,
+      join(packagePath, "node_modules"),
+      aliases,
+    );
 
-  await Promise.all(
-    Object.keys(packages).map(packageName => {
-      const filePath = resolvePath(
-        packageName,
-        join(packagePath, 'node_modules'),
-        aliases
-      );
+    if (!newPath) {
+      return total;
+    }
 
-      if (fs.existsSync(filePath)) {
-        return getRequiresFromFile(filePath, files, aliases);
-      }
-    })
-  );
-
-  return files;
+    return {
+      ...total,
+      ...buildRequireObject(newPath, total, aliases),
+    };
+  }, {});
 }

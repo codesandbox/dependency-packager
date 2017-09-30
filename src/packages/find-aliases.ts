@@ -9,6 +9,12 @@ function getDirectories(path: string) {
     .filter(file => fs.lstatSync(join(path, file)).isDirectory());
 }
 
+interface Package {
+  name: string;
+  main?: string;
+  browser?: string;
+}
+
 export default async function findAliases(
   packages: IDependencies,
   packagePath: string
@@ -37,17 +43,19 @@ export default async function findAliases(
         join(packagePath, 'node_modules', packageName, 'package.json')
       );
 
-      const pkg: { name: string; main?: string } = JSON.parse(
-        contents.toString()
-      );
+      const pkg: Package = JSON.parse(contents.toString());
 
       return { name: packageName, package: pkg };
     })
   );
 
   return packageJSONs.reduce((total, next) => {
-    const path = next.package.main
-      ? join(packagePath, 'node_modules', next.name, next.package.main)
+    // We use the browser field if it is a string (not an object) and exists
+    const hasBrowser = typeof next.package.browser === 'string';
+    const main = hasBrowser ? next.package.browser : next.package.main;
+
+    const path = main
+      ? join(packagePath, 'node_modules', next.name, main)
       : join(packagePath, 'node_modules', next.name, 'index.js');
 
     return { ...total, [next.name]: path };
