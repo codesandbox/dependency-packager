@@ -6,33 +6,25 @@ import * as pacote from "pacote";
  * @param {IDependencies} dependencies
  * @returns
  */
-async function getAbsoluteVersions(dependencies: IDependencies) {
-  const dependencyNames = Object.keys(dependencies);
+async function getAbsoluteVersion({
+  name,
+  version,
+}: {
+  name: string;
+  version: string;
+}) {
+  const depString = `${name}@${version}`;
 
-  // First build an array with name and absolute version, allows parallel
-  // fetching of version numbers
-  const absoluteDependencies = await Promise.all(
-    dependencyNames.map(async depName => {
-      console.log(depName, dependencies[depName]);
-      const depString = `${depName}@${dependencies[depName]}`;
+  try {
+    const manifest = await pacote.manifest(depString);
 
-      try {
-        const manifest = await pacote.manifest(depString);
+    const absoluteVersion = manifest.version;
 
-        const absoluteVersion = manifest.version;
-
-        return { name: depName, version: absoluteVersion };
-      } catch (e) {
-        e.message = `Could not fetch version for ${depString}: ${e.message}`;
-        throw e;
-      }
-    }),
-  );
-
-  return absoluteDependencies.reduce((total: IDependencies, next) => {
-    total[next.name] = next.version;
-    return total;
-  }, {});
+    return { name, version: absoluteVersion };
+  } catch (e) {
+    e.message = `Could not fetch version for ${depString}: ${e.message}`;
+    throw e;
+  }
 }
 
 /**
@@ -42,8 +34,11 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
  * @export
  * @param {object} dependencies
  */
-export default async function mapDependencies(dependencies: IDependencies) {
-  const absoluteDependencies = await getAbsoluteVersions(dependencies);
+export default async function mapDependencies(dependency: {
+  name: string;
+  version: string;
+}) {
+  const absoluteDependencies = await getAbsoluteVersion(dependency);
 
   return absoluteDependencies;
 }

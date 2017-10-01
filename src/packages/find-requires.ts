@@ -2,46 +2,37 @@ import { fs } from "mz";
 import { dirname, join } from "path";
 
 import findAliases from "./find-aliases";
+import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
+import getAliasedPath from "./utils/get-aliased-path";
 import nodeResolvePath from "./utils/node-resolve-path";
 
 interface IAliases {
   [alias: string]: string;
 }
 
-function rewritePath(path: string, currentPath: string, aliases: IAliases) {
+function rewritePath(
+  path: string,
+  currentPath: string,
+  packagePath: string,
+  aliases: IAliases,
+) {
   const relativePath = nodeResolvePath(join(dirname(currentPath), path));
+  const isDependency = /^(\w|@\w)/.test(path);
 
-  if (/^(\w|@\w)/.test(path)) {
-    // TODO check if this causes problems in windows
-    const parts = path.split("/");
+  // TODO support for @packages
+  const newPath = isDependency ? join(packagePath, "../", path) : relativePath;
 
-    let pathToAlias;
-    let rest;
-
-    if (path.startsWith("@")) {
-      pathToAlias = `${parts[0]}/${parts[1]}`;
-      rest = parts.slice(2, parts.length);
-    } else {
-      pathToAlias = parts[0];
-      rest = parts.slice(1, parts.length);
-    }
-
-    let alias = aliases[pathToAlias];
-
-    if (alias && rest.length) {
-      alias = join(dirname(alias), ...rest);
-    }
-
-    // it's a dependency
-    return alias || relativePath;
-  } else {
-    return relativePath;
+  if (!newPath) {
+    return null;
   }
+
+  return aliases[newPath] || newPath;
 }
 
 function buildRequireObject(
   filePath: string,
+  packagePath: string,
   existingContents: { [path: string]: string },
   aliases: IAliases,
 ): { [path: string]: string } {
@@ -51,24 +42,35 @@ function buildRequireObject(
     return existingContents;
   }
 
-  return extractRequires(contents.content).reduce(
-    (total, requirePath) => {
-      const newPath = rewritePath(requirePath, filePath, aliases);
+  const newContents = {
+    ...existingContents,
+    [contents.path]: contents.content,
+  };
 
-      if (!newPath) {
-        return total;
-      }
+  if (!contents.path.endsWith(".js")) {
+    return newContents;
+  }
 
-      const requiredContents = buildRequireObject(newPath, total, aliases);
+  return extractRequires(contents.content).reduce((total, requirePath) => {
+    const newPath = rewritePath(requirePath, filePath, packagePath, aliases);
 
-      if (requiredContents !== existingContents) {
-        return { ...total, ...requiredContents };
-      }
-
+    if (!newPath) {
       return total;
-    },
-    { ...existingContents, [contents.path]: contents.content },
-  );
+    }
+
+    const requiredContents = buildRequireObject(
+      newPath,
+      packagePath,
+      total,
+      aliases,
+    );
+
+    if (requiredContents !== existingContents) {
+      return { ...total, ...requiredContents };
+    }
+
+    return total;
+  }, newContents);
 }
 
 function getRequiresFromFile(
@@ -93,25 +95,45 @@ function getRequiresFromFile(
 }
 
 export default async function findRequires(
-  packages: IDependencies,
-  packagePath: string,
+  packageName: string,
+  rootPath: string,
 ) {
-  const aliases = await findAliases(packages, packagePath);
+  const packageInfos = await findAliases(packageName, rootPath);
 
-  return Object.keys(packages).reduce((total, packageName) => {
-    const newPath = rewritePath(
-      packageName,
-      join(packagePath, "node_modules"),
-      aliases,
-    );
+  if (!packageInfos[packageName]) {
+    return;
+  }
 
-    if (!newPath) {
-      return total;
-    }
+  const packagePath = join(rootPath, "node_modules", packageName);
 
+  const requiredFiles = await resolveRequiredFiles(
+    packagePath,
+    packageInfos[packageName],
+  );
+
+  const aliases = Object.keys(packageInfos).reduce((total, name) => {
+    const browserField = packageInfos[name].package.browser;
+    const browserAliases = typeof browserField === "object" ? browserField : {};
     return {
       ...total,
-      ...buildRequireObject(newPath, total, aliases),
+      [name]: packageInfos[name].main,
+      ...browserAliases,
     };
   }, {});
+
+  let files = {};
+
+  for (const file of requiredFiles) {
+    if (file) {
+      const newFiles = await buildRequireObject(
+        file,
+        packagePath,
+        files,
+        aliases,
+      );
+      files = { ...files, ...newFiles };
+    }
+  }
+
+  return files;
 }
