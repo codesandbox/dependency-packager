@@ -1,4 +1,4 @@
-import * as pacote from 'pacote';
+import * as pacote from "pacote";
 
 /**
  * Gets the absolute versions of all dependencies
@@ -13,6 +13,7 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
   // fetching of version numbers
   const absoluteDependencies = await Promise.all(
     dependencyNames.map(async depName => {
+      console.log(depName, dependencies[depName]);
       const depString = `${depName}@${dependencies[depName]}`;
 
       try {
@@ -25,7 +26,7 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
         e.message = `Could not fetch version for ${depString}: ${e.message}`;
         throw e;
       }
-    })
+    }),
   );
 
   return absoluteDependencies.reduce((total: IDependencies, next) => {

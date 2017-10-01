@@ -1,14 +1,17 @@
-import { Request, Response } from 'express';
-import * as path from 'path';
+import { Request, Response } from "express";
+import * as path from "path";
 
-import parseDependenciess from './dependencies/parse-dependencies';
-import installDependencies from './dependencies/install-dependencies';
+import installDependencies from "./dependencies/install-dependencies";
+import parseDependenciess from "./dependencies/parse-dependencies";
 
-import findRequires from './packages/find-requires';
+import findRequires from "./packages/find-requires";
 
-import getHash from './utils/get-hash';
+import getHash from "./utils/get-hash";
 
-export async function hello(req: Request, res: Response) {
+export async function http(req: Request, res: Response) {
+  console.log(req.url);
+  console.log(req.baseUrl);
+  console.log(req.originalUrl);
   const dependencies = await parseDependenciess(req.url);
   const hash = getHash(dependencies);
 
@@ -18,24 +21,24 @@ export async function hello(req: Request, res: Response) {
     return;
   }
 
-  const packagePath = path.join('/tmp', hash);
+  const packagePath = path.join("/tmp", hash);
 
   await installDependencies(dependencies, packagePath);
 
   const requires = await findRequires(dependencies, packagePath);
 
-  console.log('Done - ' + (Date.now() - a) + ' - ' + packagePath);
+  console.log("Done - " + (Date.now() - a) + " - " + packagePath);
   res.json(requires);
 }
 
 if (process.env.LOCAL) {
-  const express = require('express');
+  const express = require("express");
 
   const app = express();
 
-  app.get('/*', hello);
+  app.get("/*", http);
 
   app.listen(8080, () => {
-    console.log('listening');
+    console.log("listening");
   });
 }
