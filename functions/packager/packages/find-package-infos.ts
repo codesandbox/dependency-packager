@@ -104,10 +104,11 @@ export default async function findAliases(
   );
 
   return packageJSONs.reduce((total, next) => {
-    const mainPath = getMainField(next.package);
+    const mainPath = getMainField(next.package) || "index.js";
     const packagePath = join(rootPath, "node_modules", next.name);
 
-    const path = mainPath != null ? join(packagePath, mainPath) : null;
+    const absolutePath = join(packagePath, mainPath);
+    const path = fs.existsSync(absolutePath) ? absolutePath : null;
 
     const browserAliases = transformBrowserRequires(
       next.package.browser,

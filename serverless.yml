@@ -1,31 +1,74 @@
-service: gcf-nodejs # NOTE: Don't put the word "google" in here
+service:
+  name: codesandbox-packager
+  runtime: nodejs6.10
+
+custom:
+  s3Bucket: ${opt:stage}.packager.packages
+  region: eu-west-1
 
 provider:
-  name: google
-  runtime: nodejs
-  project: codesandbox-153802
-  # the path to the credentials file needs to be absolute
-  credentials: ~/.gcloud/keyfile.json
-  memorySize: 2048
-  timeout: 90s
+  name: aws
+  runtime: nodejs6.10
+  memorySize: 1536
+  timeout: 300
+  region: ${self:custom.region}
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+        - "s3:DeleteObject"
+      Resource: "arn:aws:s3:::${self:custom.s3Bucket}/*"
+    - Effect: 'Allow'
+      Action:
+        - 'lambda:InvokeFunction'
+      Resource: "*"
+
+  environment:
+    IN_LAMBDA: true
+    SERVERLESS_STAGE: ${opt:stage}
+    BUCKET_NAME: ${self:custom.s3Bucket}
 
 plugins:
-  - serverless-google-cloudfunctions
   - serverless-plugin-typescript
 
 # needs more granular excluding in production as only the serverless provider npm
 # package should be excluded (and not the whole node_modules directory)
 package:
   exclude:
-    - node_modules/**
     - .gitignore
     - .git/**
+    - dist/**
 
 functions:
-  first:
-    handler: http
+  api:
+    handler: functions/api/index.http
+    package:
+      exclude:
+        - functions/**
+        - manifests/**
+        - packages/**
+      include:
+        - functions/api/**
     events:
-      - http: path
+      - http:
+          path: /packages/{packages}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  packager:
+    handler: functions/packager/index.call
+    package:
+      exclude:
+        - functions/**
+        - manifests/**
+        - packages/**
+      include:
+        - functions/packager/**
 
   # NOTE: the following uses an "event" event (pubSub event in this case).
   # Please create the corresponding resources in the Google Cloud
@@ -40,9 +83,64 @@ functions:
 
 # you can define resources, templates etc. the same way you would in a
 # Google Cloud deployment configuration
-#resources:
-#  resources:
-#    - type: storage.v1.bucket
-#      name: my-serverless-service-bucket
+resources:
+  Resources:
+    PackageS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.s3Bucket}
+
+    PackageS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: PackageS3Bucket
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadGetObject
+              Effect: Allow
+              Principal: "*"
+              Action:
+              - s3:GetObject
+              Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
+
+    CloudFrontDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Origins:
+          - Id: codesandbox-packager-api
+            DomainName:
+              Fn::Join:
+                - ''
+                - - Ref: ApiGatewayRestApi
+                  - '.execute-api.${self:custom.region}.amazonaws.com'
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'
+              OriginProtocolPolicy: match-viewer
+            OriginPath:
+              - "/${opt:stage}"
+          Enabled: true
+          Comment: Packages API
+          PriceClass: PriceClass_All
+          DefaultCacheBehavior:
+            AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            CachedMethods:
+            - HEAD
+            - GET
+            ForwardedValues:
+              QueryString: true
+              Headers: []
+              Cookies:
+                Forward: none
+            MinTTL: '0'
+            TargetOriginId: codesandbox-packager-api
+            ViewerProtocolPolicy: https-only
+          CustomErrorResponses: []
+
 #  imports:
 #    - path: my_template.jinja

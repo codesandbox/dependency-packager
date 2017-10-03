@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Callback, Context } from "aws-lambda";
+import { S3 } from "aws-sdk";
 import * as path from "path";
 
 import installDependencies from "./dependencies/install-dependencies";
@@ -9,9 +10,13 @@ import findRequires from "./packages/find-requires";
 
 import getHash from "./utils/get-hash";
 
-export async function http(req: Request, res: Response) {
+const { BUCKET_NAME } = process.env;
+
+const s3 = new S3();
+
+export async function call(event: any, context: Context, cb: Callback) {
   try {
-    const dependency = await parseDependency(req.url);
+    const dependency = event;
     const hash = getHash(dependency);
 
     const a = Date.now();
@@ -51,24 +56,34 @@ export async function http(req: Request, res: Response) {
     );
 
     console.log("Done - " + (Date.now() - a) + " - " + packagePath);
-    res.json({
+
+    const response = {
       aliases: newAliases,
       contents,
       dependency,
-    });
+    };
+
+    if (!BUCKET_NAME) {
+      throw new Error("No bucket has been specified");
+    }
+
+    s3.putObject(
+      {
+        Body: JSON.stringify(response),
+        Bucket: BUCKET_NAME,
+        Key: `packages/${dependency.name}/${dependency.version}.json`,
+        ACL: "public-read",
+        ContentType: "application/json",
+      },
+      err => {
+        if (err) {
+          console.log(err);
+        }
+      },
+    );
+
+    cb(undefined, response);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    cb(e);
   }
-}
-
-if (process.env.LOCAL) {
-  const express = require("express");
-
-  const app = express();
-
-  app.get("/*", http);
-
-  app.listen(8080, () => {
-    console.log("Listening on port 8080");
-  });
 }

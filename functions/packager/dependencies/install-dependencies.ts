@@ -5,17 +5,15 @@ export default function(
   dependency: { name: string; version: string },
   packagePath: string,
 ) {
-  const NODE_PATH = process.env.LOCAL ? "node" : "/nodejs/bin/node";
-
   return new Promise((resolve, reject) => {
     exec(
-      `mkdir -p ${packagePath} && cd ${packagePath} && HOME=/tmp ${NODE_PATH} ${join(
+      `mkdir -p ${packagePath} && cd ${packagePath} && HOME=/tmp node ${join(
         __dirname,
-        "../../node_modules",
+        "../../../node_modules",
         "yarn",
         "lib",
         "cli",
-      )} add ${dependency.name}@${dependency.version} node-libs-browser --no-lockfile --ignore-scripts --non-interactive --no-bin-links --no-lockfile --ignore-engines`,
+      )} add ${dependency.name}@${dependency.version} --no-lockfile --ignore-scripts --non-interactive --no-bin-links --no-lockfile --ignore-engines`,
       (err, stdout, stderr) => {
         if (err) {
           reject(

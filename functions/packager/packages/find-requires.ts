@@ -4,7 +4,6 @@ import { dirname, join } from "path";
 import { IPackageInfo } from "./find-package-infos";
 import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
-import getAliasedPath from "./utils/get-aliased-path";
 import nodeResolvePath from "./utils/node-resolve-path";
 
 interface IAliases {
