@@ -1,9 +1,26 @@
 import { flatten } from "lodash";
 import { fs } from "mz";
 import { basename, dirname, join } from "path";
-import { IPackageInfo } from "./find-aliases";
+import { IPackageInfo } from "./find-package-infos";
 
-const BLACKLISTED_DIRS = ["umd", "tests"];
+const BLACKLISTED_DIRS = [
+  "demo",
+  "docs",
+  "benchmark",
+  "es6",
+  "es",
+  "flow-typed",
+  "src",
+  "bundles",
+  "examples",
+  "scripts",
+  "tests",
+  "test",
+  "testing",
+  "umd",
+  "min",
+  "node_modules",
+];
 
 async function getFilePathsInDirectory(path: string): Promise<string[]> {
   const entries = await fs.readdir(path);
@@ -32,6 +49,30 @@ async function getFilePathsInDirectory(path: string): Promise<string[]> {
   return files;
 }
 
+const DISALLOWED_EXTENSIONS = ["min.js", "umd.js", "node.js", "test.js"];
+const ALLOWED_EXTENSIONS = [
+  "json",
+  "js",
+  "css",
+  "scss",
+  "styl",
+  "less",
+  "vue",
+  "html",
+];
+
+function isValidFile(filePath: string) {
+  if (DISALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+    return false;
+  }
+
+  if (ALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+    return true;
+  }
+
+  return false;
+}
+
 const FALLBACK_DIRS = ["dist", "lib", "build"];
 
 export default async function resolveRequiredFiles(
@@ -56,7 +97,5 @@ export default async function resolveRequiredFiles(
 
   const files = await getFilePathsInDirectory(entryDir);
 
-  return files
-    .filter(p => p.endsWith(".js"))
-    .filter(p => !p.endsWith(".min.js"));
+  return files.filter(isValidFile);
 }

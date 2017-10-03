@@ -1,14 +1,14 @@
 import { fs } from "mz";
 import { dirname, join } from "path";
 
-import findAliases from "./find-aliases";
+import { IPackageInfo } from "./find-package-infos";
 import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
 import getAliasedPath from "./utils/get-aliased-path";
 import nodeResolvePath from "./utils/node-resolve-path";
 
 interface IAliases {
-  [alias: string]: string;
+  [alias: string]: string | false | null;
 }
 
 function rewritePath(
@@ -27,7 +27,16 @@ function rewritePath(
     return null;
   }
 
-  return aliases[newPath] || newPath;
+  if (aliases[path]) {
+    return aliases[path];
+  }
+
+  const nodeResolvedNewPath = nodeResolvePath(newPath);
+  if (nodeResolvedNewPath && aliases[nodeResolvedNewPath]) {
+    return aliases[nodeResolvedNewPath];
+  }
+
+  return newPath;
 }
 
 function buildRequireObject(
@@ -65,6 +74,7 @@ function buildRequireObject(
       aliases,
     );
 
+    // If something was added to the total
     if (requiredContents !== existingContents) {
       return { ...total, ...requiredContents };
     }
@@ -80,7 +90,7 @@ function getRequiresFromFile(
 ) {
   const resolvedPath = nodeResolvePath(filePath);
   if (!resolvedPath) {
-    console.log('Warning: could not find "' + filePath + '"');
+    // console.log('Warning: could not find "' + filePath + '"');
     return null;
   }
 
@@ -97,11 +107,11 @@ function getRequiresFromFile(
 export default async function findRequires(
   packageName: string,
   rootPath: string,
+  packageInfos: { [dep: string]: IPackageInfo },
+  aliases: IAliases,
 ) {
-  const packageInfos = await findAliases(packageName, rootPath);
-
   if (!packageInfos[packageName]) {
-    return;
+    return { contents: {}, aliases: {} };
   }
 
   const packagePath = join(rootPath, "node_modules", packageName);
@@ -111,17 +121,7 @@ export default async function findRequires(
     packageInfos[packageName],
   );
 
-  const aliases = Object.keys(packageInfos).reduce((total, name) => {
-    const browserField = packageInfos[name].package.browser;
-    const browserAliases = typeof browserField === "object" ? browserField : {};
-    return {
-      ...total,
-      [name]: packageInfos[name].main,
-      ...browserAliases,
-    };
-  }, {});
-
-  let files = {};
+  let files: { [path: string]: string } = {};
 
   for (const file of requiredFiles) {
     if (file) {
@@ -135,5 +135,23 @@ export default async function findRequires(
     }
   }
 
-  return files;
+  const nodeModulesPath = join(rootPath, "node_modules") + "/";
+  const relativeFiles = Object.keys(files).reduce(
+    (total, next) => ({
+      ...total,
+      [next.replace(nodeModulesPath, "")]: files[next],
+    }),
+    {},
+  );
+
+  const relativeAliases = Object.keys(aliases).reduce((total, next) => {
+    const aliasPath = aliases[next];
+    return {
+      ...total,
+      [next.replace(nodeModulesPath, "")]:
+        aliasPath && aliasPath.replace(nodeModulesPath, ""),
+    };
+  }, {});
+
+  return { contents: relativeFiles, aliases: relativeAliases };
 }

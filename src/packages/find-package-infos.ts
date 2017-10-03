@@ -13,7 +13,7 @@ interface IPackage {
 export interface IPackageInfo {
   package: IPackage;
   main: string | undefined;
-  name: string;
+  aliases: { [key: string]: string };
 }
 
 function getDirectories(path: string) {
