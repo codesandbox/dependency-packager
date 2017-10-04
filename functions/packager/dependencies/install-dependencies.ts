@@ -9,7 +9,7 @@ export default function(
     exec(
       `mkdir -p ${packagePath} && cd ${packagePath} && HOME=/tmp node ${join(
         __dirname,
-        "../../../node_modules",
+        "../../../slsnode_modules",
         "yarn",
         "lib",
         "cli",

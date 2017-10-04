@@ -49,7 +49,15 @@ async function getFilePathsInDirectory(path: string): Promise<string[]> {
   return files;
 }
 
-const DISALLOWED_EXTENSIONS = ["min.js", "umd.js", "node.js", "test.js"];
+const DISALLOWED_EXTENSIONS = [
+  "min.js",
+  "umd.js",
+  "node.js",
+  "test.js",
+  "esm.js",
+  "common.js",
+  "cjs.js",
+];
 const ALLOWED_EXTENSIONS = [
   "json",
   "js",
@@ -97,5 +105,5 @@ export default async function resolveRequiredFiles(
 
   const files = await getFilePathsInDirectory(entryDir);
 
-  return files.filter(isValidFile);
+  return [...files.filter(isValidFile), main];
 }

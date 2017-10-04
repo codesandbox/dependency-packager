@@ -2,6 +2,10 @@ import { Callback, Context } from "aws-lambda";
 import { S3 } from "aws-sdk";
 import * as path from "path";
 
+import * as rimraf from "rimraf";
+
+import * as Raven from "raven";
+
 import installDependencies from "./dependencies/install-dependencies";
 import parseDependency from "./dependencies/parse-dependency";
 
@@ -10,20 +14,27 @@ import findRequires from "./packages/find-requires";
 
 import getHash from "./utils/get-hash";
 
+/* tslint:disable no-var-requires */
+const env = require("./environment.json");
+/* tslint:enable */
+
 const { BUCKET_NAME } = process.env;
+
+Raven.config(env.SENTRY_KEY).install();
 
 const s3 = new S3();
 
 export async function call(event: any, context: Context, cb: Callback) {
+  const dependency = event;
+  const hash = getHash(dependency);
+  const a = Date.now();
+
+  if (!hash) {
+    return;
+  }
   try {
-    const dependency = event;
-    const hash = getHash(dependency);
-
-    const a = Date.now();
-
-    if (!hash) {
-      return;
-    }
+    // Cleanup
+    rimraf.sync("/tmp/*");
 
     const packagePath = path.join("/tmp", hash);
 
@@ -61,6 +72,15 @@ export async function call(event: any, context: Context, cb: Callback) {
       aliases: newAliases,
       contents,
       dependency,
+      dependencyDependencies: Object.keys(packageInfos)
+        .filter(x => x !== dependency.name)
+        .reduce(
+          (total, depName) => ({
+            ...total,
+            [depName]: packageInfos[depName].package.version,
+          }),
+          {},
+        ),
     };
 
     if (!BUCKET_NAME) {
@@ -79,11 +99,24 @@ export async function call(event: any, context: Context, cb: Callback) {
         if (err) {
           console.log(err);
         }
+
+        throw err;
       },
     );
 
     cb(undefined, response);
   } catch (e) {
-    cb(e);
+    Raven.captureException(
+      e,
+      {
+        tags: {
+          hash,
+          dependency: `${dependency.name}@${dependency.version}`,
+        },
+      },
+      () => {
+        cb(e);
+      },
+    );
   }
 }

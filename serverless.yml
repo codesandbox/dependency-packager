@@ -103,6 +103,61 @@ resources:
       Properties:
         BucketName: codesandbox.cf.logging
 
+    PackageS3BucketCDN:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Origins:
+            - DomainName: ${self:custom.s3Bucket}.s3.amazonaws.com
+              ## An identifier for the origin which must be unique within the distribution
+              Id: PackagerS3Bucket
+              CustomOriginConfig:
+                HTTPPort: 80
+                HTTPSPort: 443
+                OriginProtocolPolicy: https-only
+              ## In case you want to restrict the bucket access use S3OriginConfig and remove CustomOriginConfig
+              # S3OriginConfig:
+              #   OriginAccessIdentity: origin-access-identity/cloudfront/E127EXAMPLE51Z
+          Enabled: 'true'
+          ## Uncomment the following section in case you are using a custom domain
+          # Aliases:
+          # - mysite.example.com
+          # DefaultRootObject: index.html
+          CustomErrorResponses:
+            - ErrorCode: 500
+              ErrorCachingMinTTL: 5
+            - ErrorCode: 403
+              ErrorCachingMinTTL: 0
+            - ErrorCode: 404
+              ErrorCachingMinTTL: 0
+          DefaultCacheBehavior:
+            Compress: 'true'
+            AllowedMethods:
+              - DELETE
+              - GET
+              - HEAD
+              - OPTIONS
+              - PATCH
+              - POST
+              - PUT
+            ## The origin id defined above
+            TargetOriginId: PackagerS3Bucket
+            ## Defining if and how the QueryString and Cookies are forwarded to the origin which in this case is S3
+            ForwardedValues:
+              QueryString: 'false'
+              Cookies:
+                Forward: none
+            ## The protocol that users can use to access the files in the origin. To allow HTTP use `allow-all`
+            ViewerProtocolPolicy: redirect-to-https
+          ## The certificate to use when viewers use HTTPS to request objects.
+          ViewerCertificate:
+            CloudFrontDefaultCertificate: 'true'
+          ## Uncomment the following section in case you want to enable logging for CloudFront requests
+          Logging:
+            IncludeCookies: 'false'
+            Bucket: codesandbox.cf.logging.s3.amazonaws.com
+            Prefix: packgers3logging
+
     PackageS3BucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
@@ -116,6 +171,9 @@ resources:
               Action:
               - s3:GetObject
               Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
-
+  Outputs:
+    S3PackagesCloudFrontOutput:
+      Value:
+        'Fn::GetAtt': [ PackageS3BucketCDN, DomainName ]
 #  imports:
 #    - path: my_template.jinja

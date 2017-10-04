@@ -1,12 +1,15 @@
 import { fs } from "mz";
 import { dirname, join } from "path";
 
+import nodeResolvePath from "./utils/node-resolve-path";
+
 interface IPackage {
   name: string;
   main?: string;
   browser?: string | { [path: string]: string };
   unpkg?: string;
   module?: string;
+  version: string;
   [key: string]: any;
 }
 
@@ -107,8 +110,7 @@ export default async function findAliases(
     const mainPath = getMainField(next.package) || "index.js";
     const packagePath = join(rootPath, "node_modules", next.name);
 
-    const absolutePath = join(packagePath, mainPath);
-    const path = fs.existsSync(absolutePath) ? absolutePath : null;
+    const path = nodeResolvePath(join(packagePath, mainPath));
 
     const browserAliases = transformBrowserRequires(
       next.package.browser,
