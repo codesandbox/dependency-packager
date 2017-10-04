@@ -59,27 +59,32 @@ function buildRequireObject(
     return newContents;
   }
 
-  return extractRequires(contents.content).reduce((total, requirePath) => {
-    const newPath = rewritePath(requirePath, filePath, packagePath, aliases);
+  try {
+    const extractedRequires = extractRequires(contents.content);
+    return extractedRequires.reduce((total, requirePath) => {
+      const newPath = rewritePath(requirePath, filePath, packagePath, aliases);
 
-    if (!newPath) {
+      if (!newPath) {
+        return total;
+      }
+
+      const requiredContents = buildRequireObject(
+        newPath,
+        packagePath,
+        total,
+        aliases,
+      );
+
+      // If something was added to the total
+      if (requiredContents !== existingContents) {
+        return { ...total, ...requiredContents };
+      }
+
       return total;
-    }
-
-    const requiredContents = buildRequireObject(
-      newPath,
-      packagePath,
-      total,
-      aliases,
-    );
-
-    // If something was added to the total
-    if (requiredContents !== existingContents) {
-      return { ...total, ...requiredContents };
-    }
-
-    return total;
-  }, newContents);
+    }, newContents);
+  } catch (e) {
+    return newContents;
+  }
 }
 
 function getRequiresFromFile(

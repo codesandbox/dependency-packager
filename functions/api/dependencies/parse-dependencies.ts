@@ -4,7 +4,6 @@ export default async function parseDependencies(
   url: string,
 ): Promise<{ [depName: string]: string }> {
   const parsedDependencies = url
-    .replace("/", "")
     .split("+")
     .map(dep => {
       const parts = dep.split("@");

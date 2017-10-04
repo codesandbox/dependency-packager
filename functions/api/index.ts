@@ -87,7 +87,7 @@ function saveFileToS3(
     s3.putObject(
       {
         Bucket: BUCKET_NAME,
-        Key: keyPath,
+        Key: decodeURIComponent(keyPath),
         Body: content,
         ContentType: contentType,
       },
@@ -105,13 +105,14 @@ function saveFileToS3(
 }
 
 function getS3BundlePath(dependencies: IDependencies) {
-  return encodeURIComponent(
+  return (
     "combinations/" +
-      Object.keys(dependencies)
-        .sort()
-        .map(dep => `${dep}@${dependencies[dep]}`)
-        .join("+") +
-      ".json",
+    Object.keys(dependencies)
+      .sort()
+      .map(dep => `${dep}@${dependencies[dep]}`)
+      .map(encodeURIComponent)
+      .join("+") +
+    ".json"
   );
 }
 
@@ -152,12 +153,20 @@ function getResponse(bundlePath: string) {
       "Cache-Control": `public, max-age=${CACHE_TIME}`,
       "Content-Type": "application/json",
       "Content-Length": response.length,
+      "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+      "Access-Control-Allow-Credentials": true, // Required for cookies, authorization headers with HTTPS
     },
     body: response,
   };
 }
 
 export async function http(event: any, context: Context, cb: Callback) {
+  /** Immediate response for WarmUP plugin */
+  if (event.source === "serverless-plugin-warmup") {
+    console.log("WarmUP - Lambda is warm!");
+    return cb(undefined, "Lambda is warm!");
+  }
+
   const { packages } = event.pathParameters;
   const escapedPackages = decodeURIComponent(packages);
   const dependencies = await parseDependencies(escapedPackages);
@@ -187,9 +196,19 @@ export async function http(event: any, context: Context, cb: Callback) {
     const s3Object = await getFileFromS3(depPath);
 
     if (s3Object && s3Object.Body != null) {
-      receivedData.push(JSON.parse(s3Object.Body.toString()));
+      const result = JSON.parse(s3Object.Body.toString()) as ILambdaResponse;
+
+      receivedData.push(result);
     } else {
       const data = await generateDependency(depName, dependencies[depName]);
+
+      if (!data.dependency) {
+        return cb(
+          new Error(
+            "Something went wrong wile packaging the dependency " + depName,
+          ),
+        );
+      }
 
       receivedData.push(data);
     }

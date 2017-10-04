@@ -12,3 +12,4 @@ packages/**/*
 .serverless
 
 environment.json
+config.secret.*

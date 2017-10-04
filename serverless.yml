@@ -5,9 +5,8 @@ service:
 custom:
   s3Bucket: ${opt:stage}.packager.packages
   region: eu-west-1
-  apiCloudFront:
-    logging:
-      bucket: codesandbox.cf.logging.s3.amazonaws.com
+  serverless-offline:
+    port: 5600
 
 provider:
   name: aws
@@ -33,9 +32,8 @@ provider:
     BUCKET_NAME: ${self:custom.s3Bucket}
 
 plugins:
-  - serverless-plugin-typescript
-  - serverless-api-cloudfront
   - serverless-plugin-warmup
+  - serverless-offline
 
 # needs more granular excluding in production as only the serverless provider npm
 # package should be excluded (and not the whole node_modules directory)
@@ -43,20 +41,24 @@ package:
   exclude:
     - .gitignore
     - .git/**
+    - functions/**
+  include:
     - dist/**
+    - ./environment.json
 
 functions:
   api:
-    handler: functions/api/index.http
-    warmup: production
+    handler: dist/api/index.http
+    warmup: prod
     memorySize: 256 # optional, in MB, default is 1024
     package:
       exclude:
+        - dist/**
         - functions/**
         - manifests/**
         - packages/**
       include:
-        - functions/api/**
+        - dist/api/**
     events:
       - http:
           path: /packages/{packages}
@@ -68,15 +70,16 @@ functions:
                 id: true
 
   packager:
-    handler: functions/packager/index.call
-    warmup: production
+    handler: dist/packager/index.call
+    warmup: prod
     package:
       exclude:
+        - dist/**
         - functions/**
         - manifests/**
         - packages/**
       include:
-        - functions/packager/**
+        - dist/packager/**
 
   # NOTE: the following uses an "event" event (pubSub event in this case).
   # Please create the corresponding resources in the Google Cloud
@@ -98,10 +101,24 @@ resources:
       Properties:
         BucketName: ${self:custom.s3Bucket}
 
-    PackageS3LoggingBucket:
-      Type: AWS::S3::Bucket
+    PackageS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
       Properties:
-        BucketName: codesandbox.cf.logging
+        Bucket:
+          Ref: PackageS3Bucket
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadGetObject
+              Effect: Allow
+              Principal: "*"
+              Action:
+              - s3:GetObject
+              Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
+
+    # PackageS3LoggingBucket:
+    #   Type: AWS::S3::Bucket
+    #   Properties:
+    #     BucketName: packager.distribution.logging
 
     PackageS3BucketCDN:
       Type: AWS::CloudFront::Distribution
@@ -155,22 +172,8 @@ resources:
           ## Uncomment the following section in case you want to enable logging for CloudFront requests
           Logging:
             IncludeCookies: 'false'
-            Bucket: codesandbox.cf.logging.s3.amazonaws.com
-            Prefix: packgers3logging
-
-    PackageS3BucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket:
-          Ref: PackageS3Bucket
-        PolicyDocument:
-          Statement:
-            - Sid: PublicReadGetObject
-              Effect: Allow
-              Principal: "*"
-              Action:
-              - s3:GetObject
-              Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
+            Bucket: packager.distribution.logging.s3.amazonaws.com
+            Prefix: packagers3logging
   Outputs:
     S3PackagesCloudFrontOutput:
       Value:

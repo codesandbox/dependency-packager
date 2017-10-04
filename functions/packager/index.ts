@@ -14,17 +14,21 @@ import findRequires from "./packages/find-requires";
 
 import getHash from "./utils/get-hash";
 
-/* tslint:disable no-var-requires */
-const env = require("./environment.json");
-/* tslint:enable */
+import env from "./config.secret";
 
 const { BUCKET_NAME } = process.env;
 
-Raven.config(env.SENTRY_KEY).install();
+Raven.config(env.SENTRY_URL).install();
 
 const s3 = new S3();
 
 export async function call(event: any, context: Context, cb: Callback) {
+  /** Immediate response for WarmUP plugin */
+  if (event.source === "serverless-plugin-warmup") {
+    console.log("WarmUP - Lambda is warm!");
+    return cb(undefined, "Lambda is warm!");
+  }
+
   const dependency = event;
   const hash = getHash(dependency);
   const a = Date.now();
@@ -34,7 +38,11 @@ export async function call(event: any, context: Context, cb: Callback) {
   }
   try {
     // Cleanup
-    rimraf.sync("/tmp/*");
+    try {
+      rimraf.sync("/tmp/*");
+    } catch (e) {
+      /* ignore */
+    }
 
     const packagePath = path.join("/tmp", hash);
 
@@ -83,26 +91,27 @@ export async function call(event: any, context: Context, cb: Callback) {
         ),
     };
 
-    if (!BUCKET_NAME) {
-      throw new Error("No bucket has been specified");
+    if (process.env.IN_LAMBDA) {
+      if (!BUCKET_NAME) {
+        throw new Error("No bucket has been specified");
+      }
+
+      s3.putObject(
+        {
+          Body: JSON.stringify(response),
+          Bucket: BUCKET_NAME,
+          Key: `packages/${dependency.name}/${dependency.version}.json`,
+          ACL: "public-read",
+          ContentType: "application/json",
+        },
+        err => {
+          if (err) {
+            console.log(err);
+            throw err;
+          }
+        },
+      );
     }
-
-    s3.putObject(
-      {
-        Body: JSON.stringify(response),
-        Bucket: BUCKET_NAME,
-        Key: `packages/${dependency.name}/${dependency.version}.json`,
-        ACL: "public-read",
-        ContentType: "application/json",
-      },
-      err => {
-        if (err) {
-          console.log(err);
-        }
-
-        throw err;
-      },
-    );
 
     cb(undefined, response);
   } catch (e) {
@@ -119,4 +128,29 @@ export async function call(event: any, context: Context, cb: Callback) {
       },
     );
   }
+}
+
+if (!process.env.IN_LAMBDA) {
+  const express = require("express");
+
+  const app = express();
+
+  app.get("/*", (req: any, res: any) => {
+    const packageParts = req.url.replace("/", "").split("@");
+    const version = packageParts.pop();
+
+    const ctx = {} as Context;
+    const dep = { name: packageParts.join("@"), version };
+
+    console.log(dep);
+    call(dep, ctx, (err: any, result: any) => {
+      console.log(err);
+
+      res.json(result);
+    });
+  });
+
+  app.listen(4545, () => {
+    /*es*/
+  });
 }
