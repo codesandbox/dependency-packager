@@ -5,6 +5,9 @@ service:
 custom:
   s3Bucket: ${opt:stage}.packager.packages
   region: eu-west-1
+  apiCloudFront:
+    logging:
+      bucket: codesandbox.cf.logging.s3.amazonaws.com
 
 provider:
   name: aws
@@ -31,6 +34,8 @@ provider:
 
 plugins:
   - serverless-plugin-typescript
+  - serverless-api-cloudfront
+  - serverless-plugin-warmup
 
 # needs more granular excluding in production as only the serverless provider npm
 # package should be excluded (and not the whole node_modules directory)
@@ -43,6 +48,8 @@ package:
 functions:
   api:
     handler: functions/api/index.http
+    warmup: production
+    memorySize: 256 # optional, in MB, default is 1024
     package:
       exclude:
         - functions/**
@@ -62,6 +69,7 @@ functions:
 
   packager:
     handler: functions/packager/index.call
+    warmup: production
     package:
       exclude:
         - functions/**
@@ -90,6 +98,11 @@ resources:
       Properties:
         BucketName: ${self:custom.s3Bucket}
 
+    PackageS3LoggingBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: codesandbox.cf.logging
+
     PackageS3BucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
@@ -103,44 +116,6 @@ resources:
               Action:
               - s3:GetObject
               Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
-
-    CloudFrontDistribution:
-      Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          Origins:
-          - Id: codesandbox-packager-api
-            DomainName:
-              Fn::Join:
-                - ''
-                - - Ref: ApiGatewayRestApi
-                  - '.execute-api.${self:custom.region}.amazonaws.com'
-            CustomOriginConfig:
-              HTTPPort: '80'
-              HTTPSPort: '443'
-              OriginProtocolPolicy: match-viewer
-            OriginPath:
-              - "/${opt:stage}"
-          Enabled: true
-          Comment: Packages API
-          PriceClass: PriceClass_All
-          DefaultCacheBehavior:
-            AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-            CachedMethods:
-            - HEAD
-            - GET
-            ForwardedValues:
-              QueryString: true
-              Headers: []
-              Cookies:
-                Forward: none
-            MinTTL: '0'
-            TargetOriginId: codesandbox-packager-api
-            ViewerProtocolPolicy: https-only
-          CustomErrorResponses: []
 
 #  imports:
 #    - path: my_template.jinja

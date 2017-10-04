@@ -17,6 +17,8 @@ interface ILambdaResponse {
   };
 }
 
+const CACHE_TIME = 60 * 60 * 24; // A day caching
+
 const lambda = new aws.Lambda({
   region: "eu-west-1",
 });
@@ -51,8 +53,10 @@ function getDependencyFromS3(
         Key: `packages/${name}/${version}.json`,
       },
       (err, packageData) => {
-        if (err) {
+        if (err && err.name !== "AccessDenied") {
           console.error(err);
+          reject(err);
+          return;
         }
 
         resolve(packageData);
@@ -100,6 +104,9 @@ export async function http(event: any, context: Context, cb: Callback) {
     throw new Error("No BUCKET_NAME provided");
   }
 
+  // Add node-libs-browser
+  dependencies["node-libs-browser"] = "latest";
+
   Object.keys(dependencies).forEach(async depName => {
     const s3Object = await getDependencyFromS3(depName, dependencies[depName]);
 
@@ -111,10 +118,17 @@ export async function http(event: any, context: Context, cb: Callback) {
       receivedData.push(data);
     }
 
+    const body = JSON.stringify(mergeResults(receivedData));
+
     if (receivedData.length === Object.keys(dependencies).length) {
       cb(undefined, {
         statusCode: 200,
-        body: JSON.stringify(mergeResults(receivedData)),
+        headers: {
+          "Cache-Control": `public, max-age=${CACHE_TIME}`,
+          "Content-Type": "application/json",
+          "Content-Length": body.length,
+        },
+        body,
       });
     }
   });
