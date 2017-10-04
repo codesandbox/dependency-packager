@@ -22,6 +22,11 @@ Raven.config(env.SENTRY_URL).install();
 
 const s3 = new S3();
 
+// Install git binaries
+/* tslint:disable no-var-requires */
+require("lambda-git")();
+/* tslint:enable */
+
 export async function call(event: any, context: Context, cb: Callback) {
   /** Immediate response for WarmUP plugin */
   if (event.source === "serverless-plugin-warmup") {
