@@ -10,6 +10,13 @@ interface IAliases {
   [alias: string]: string | false | null;
 }
 
+interface IFileData {
+  [path: string]: {
+    content: string;
+    requires: string[];
+  };
+}
+
 function rewritePath(
   path: string,
   currentPath: string,
@@ -41,9 +48,9 @@ function rewritePath(
 function buildRequireObject(
   filePath: string,
   packagePath: string,
-  existingContents: { [path: string]: string },
+  existingContents: IFileData,
   aliases: IAliases,
-): { [path: string]: string } {
+): IFileData {
   const contents = getRequiresFromFile(filePath, existingContents, aliases);
 
   if (!contents) {
@@ -52,7 +59,10 @@ function buildRequireObject(
 
   const newContents = {
     ...existingContents,
-    [contents.path]: contents.content,
+    [contents.path]: {
+      requires: contents.requiredPaths,
+      content: contents.content,
+    },
   };
 
   if (!contents.path.endsWith(".js")) {
@@ -89,7 +99,7 @@ function buildRequireObject(
 
 function getRequiresFromFile(
   filePath: string,
-  existingContents: { [path: string]: string },
+  existingContents: IFileData,
   aliases: IAliases,
 ) {
   const resolvedPath = nodeResolvePath(filePath);
@@ -102,10 +112,19 @@ function getRequiresFromFile(
     return null;
   }
 
-  return {
-    content: fs.readFileSync(resolvedPath).toString(),
+  const fileData: { path: string; content: string; requiredPaths: string[] } = {
     path: resolvedPath,
+    content: fs.readFileSync(resolvedPath).toString(),
+    requiredPaths: [],
   };
+
+  try {
+    fileData.requiredPaths = extractRequires(fileData.content);
+  } catch (e) {
+    /* Do nothing with it */
+  }
+
+  return fileData;
 }
 
 export default async function findRequires(
@@ -125,7 +144,7 @@ export default async function findRequires(
     packageInfos[packageName],
   );
 
-  let files: { [path: string]: string } = {};
+  let files: IFileData = {};
 
   for (const file of requiredFiles) {
     if (file) {

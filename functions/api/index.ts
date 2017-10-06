@@ -87,7 +87,7 @@ function saveFileToS3(
     s3.putObject(
       {
         Bucket: BUCKET_NAME,
-        Key: decodeURIComponent(keyPath),
+        Key: keyPath, // don't allow slashes
         Body: content,
         ContentType: contentType,
       },
@@ -109,8 +109,13 @@ function getS3BundlePath(dependencies: IDependencies) {
     "combinations/" +
     Object.keys(dependencies)
       .sort()
-      .map(dep => `${dep}@${dependencies[dep]}`)
-      .map(encodeURIComponent)
+      .map(
+        // Paths starting with slashes don't work with cloudfront, even escaped. So we remove the slashes
+        dep =>
+          `${encodeURIComponent(
+            dep.replace("/", "-").replace("@", ""),
+          )}@${dependencies[dep]}`,
+      )
       .join("+") +
     ".json"
   );
@@ -145,7 +150,7 @@ function generateDependency(
 }
 
 function getResponse(bundlePath: string) {
-  const response = JSON.stringify({ url: bundlePath });
+  const response = JSON.stringify({ url: bundlePath.replace(/\+/g, "%2B") });
 
   return {
     statusCode: 200,
