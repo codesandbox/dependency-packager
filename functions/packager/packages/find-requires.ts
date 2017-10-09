@@ -13,7 +13,7 @@ interface IAliases {
 interface IFileData {
   [path: string]: {
     content: string;
-    requires: string[];
+    requires?: string[];
   };
 }
 
@@ -51,53 +51,41 @@ function buildRequireObject(
   existingContents: IFileData,
   aliases: IAliases,
 ): IFileData {
-  const contents = getRequiresFromFile(filePath, existingContents, aliases);
+  const fileData = getFileData(filePath, existingContents, aliases);
 
-  if (!contents) {
+  if (!fileData) {
     return existingContents;
   }
 
-  const newContents = {
-    ...existingContents,
-    [contents.path]: {
-      requires: contents.requiredPaths,
-      content: contents.content,
-    },
+  existingContents[fileData.path] = {
+    content: fileData.content,
   };
 
-  if (!contents.path.endsWith(".js")) {
-    return newContents;
+  if (!fileData.path.endsWith(".js")) {
+    return existingContents;
   }
 
   try {
-    const extractedRequires = extractRequires(contents.content);
-    return extractedRequires.reduce((total, requirePath) => {
+    const extractedRequires = extractRequires(fileData.content);
+    existingContents[fileData.path].requires = extractedRequires;
+
+    extractedRequires.forEach(requirePath => {
       const newPath = rewritePath(requirePath, filePath, packagePath, aliases);
 
       if (!newPath) {
-        return total;
+        return;
       }
 
-      const requiredContents = buildRequireObject(
-        newPath,
-        packagePath,
-        total,
-        aliases,
-      );
+      buildRequireObject(newPath, packagePath, existingContents, aliases);
+    });
 
-      // If something was added to the total
-      if (requiredContents !== existingContents) {
-        return { ...total, ...requiredContents };
-      }
-
-      return total;
-    }, newContents);
+    return existingContents;
   } catch (e) {
-    return newContents;
+    return existingContents;
   }
 }
 
-function getRequiresFromFile(
+function getFileData(
   filePath: string,
   existingContents: IFileData,
   aliases: IAliases,
@@ -112,17 +100,10 @@ function getRequiresFromFile(
     return null;
   }
 
-  const fileData: { path: string; content: string; requiredPaths: string[] } = {
+  const fileData: { path: string; content: string } = {
     path: resolvedPath,
     content: fs.readFileSync(resolvedPath).toString(),
-    requiredPaths: [],
   };
-
-  try {
-    fileData.requiredPaths = extractRequires(fileData.content);
-  } catch (e) {
-    /* Do nothing with it */
-  }
 
   return fileData;
 }
