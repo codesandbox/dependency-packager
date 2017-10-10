@@ -55,7 +55,6 @@ const DISALLOWED_EXTENSIONS = [
   "node.js",
   "test.js",
   "esm.js",
-  "common.js",
   "cjs.js",
 ];
 const ALLOWED_EXTENSIONS = [
