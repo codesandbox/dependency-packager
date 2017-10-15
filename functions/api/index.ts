@@ -166,63 +166,68 @@ function getResponse(bundlePath: string) {
 }
 
 export async function http(event: any, context: Context, cb: Callback) {
-  /** Immediate response for WarmUP plugin */
-  if (event.source === "serverless-plugin-warmup") {
-    console.log("WarmUP - Lambda is warm!");
-    return cb(undefined, "Lambda is warm!");
-  }
+  try {
+    /** Immediate response for WarmUP plugin */
+    if (event.source === "serverless-plugin-warmup") {
+      console.log("WarmUP - Lambda is warm!");
+      return cb(undefined, "Lambda is warm!");
+    }
 
-  const { packages } = event.pathParameters;
-  const escapedPackages = decodeURIComponent(packages);
-  const dependencies = await parseDependencies(escapedPackages);
+    const { packages } = event.pathParameters;
+    const escapedPackages = decodeURIComponent(packages);
+    const dependencies = await parseDependencies(escapedPackages);
 
-  const receivedData: ILambdaResponse[] = [];
+    const receivedData: ILambdaResponse[] = [];
 
-  if (!BUCKET_NAME) {
-    throw new Error("No BUCKET_NAME provided");
-  }
+    if (!BUCKET_NAME) {
+      throw new Error("No BUCKET_NAME provided");
+    }
 
-  // TODO test if this is really needed
-  // // Add node-libs-browser
-  // dependencies["node-libs-browser"] = "latest";
+    // TODO test if this is really needed
+    // // Add node-libs-browser
+    // dependencies["node-libs-browser"] = "latest";
 
-  const bundlePath = getS3BundlePath(dependencies);
-  const bundle = await getFileFromS3(bundlePath);
+    const bundlePath = getS3BundlePath(dependencies);
+    const bundle = await getFileFromS3(bundlePath);
 
-  const response = JSON.stringify({ url: bundlePath });
+    const response = JSON.stringify({ url: bundlePath });
 
-  if (bundle && bundle.Body) {
-    cb(undefined, getResponse(bundlePath));
-    return;
-  }
+    if (bundle && bundle.Body) {
+      cb(undefined, getResponse(bundlePath));
+      return;
+    }
 
-  Object.keys(dependencies).forEach(async depName => {
-    const depPath = `packages/${depName}/${dependencies[depName]}.json`;
-    const s3Object = await getFileFromS3(depPath);
+    Object.keys(dependencies).forEach(async depName => {
+      const depPath = `packages/${depName}/${dependencies[depName]}.json`;
+      const s3Object = await getFileFromS3(depPath);
 
-    if (s3Object && s3Object.Body != null) {
-      const result = JSON.parse(s3Object.Body.toString()) as ILambdaResponse;
+      if (s3Object && s3Object.Body != null) {
+        const result = JSON.parse(s3Object.Body.toString()) as ILambdaResponse;
 
-      receivedData.push(result);
-    } else {
-      const data = await generateDependency(depName, dependencies[depName]);
+        receivedData.push(result);
+      } else {
+        const data = await generateDependency(depName, dependencies[depName]);
 
-      if (!data.dependency) {
-        return cb(
-          new Error(
-            "Something went wrong wile packaging the dependency " + depName,
-          ),
-        );
+        if (!data.dependency) {
+          return cb(
+            new Error(
+              "Something went wrong wile packaging the dependency " + depName,
+            ),
+          );
+        }
+
+        receivedData.push(data);
       }
 
-      receivedData.push(data);
-    }
+      const body = JSON.stringify(mergeResults(receivedData));
 
-    const body = JSON.stringify(mergeResults(receivedData));
-
-    if (receivedData.length === Object.keys(dependencies).length) {
-      await saveFileToS3(bundlePath, body);
-      cb(undefined, getResponse(bundlePath));
-    }
-  });
+      if (receivedData.length === Object.keys(dependencies).length) {
+        await saveFileToS3(bundlePath, body);
+        cb(undefined, getResponse(bundlePath));
+      }
+    });
+  } catch (e) {
+    console.error("ERROR ", e);
+    cb(e);
+  }
 }

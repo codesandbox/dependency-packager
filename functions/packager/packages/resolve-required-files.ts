@@ -39,6 +39,7 @@ async function getFilePathsInDirectory(path: string): Promise<string[]> {
       .filter(x => x.isDirectory)
       .map(x => x.entry)
       .filter(x => BLACKLISTED_DIRS.indexOf(basename(x)) === -1)
+      .filter(x => !basename(x).startsWith("."))
       .map((dir: string) => getFilePathsInDirectory(dir)),
   );
 
@@ -56,6 +57,7 @@ const DISALLOWED_EXTENSIONS = [
   "test.js",
   "esm.js",
   "cjs.js",
+  "module.js",
 ];
 const ALLOWED_EXTENSIONS = [
   "json",
@@ -69,6 +71,10 @@ const ALLOWED_EXTENSIONS = [
 ];
 
 function isValidFile(filePath: string) {
+  if (basename(filePath).startsWith(".")) {
+    return false;
+  }
+
   if (DISALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
     return false;
   }

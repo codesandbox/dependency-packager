@@ -50,7 +50,7 @@ functions:
   api:
     handler: dist/api/index.http
     warmup: prod
-    memorySize: 256 # optional, in MB, default is 1024
+    memorySize: 768 # optional, in MB, default is 1024
     package:
       exclude:
         - dist/**
