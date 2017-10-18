@@ -6,6 +6,8 @@ import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
 
+import * as browserResolve from "browser-resolve";
+
 interface IAliases {
   [alias: string]: string | false | null;
 }
@@ -26,23 +28,15 @@ function rewritePath(
   const relativePath = nodeResolvePath(join(dirname(currentPath), path));
   const isDependency = /^(\w|@\w)/.test(path);
 
-  // TODO support for @packages
-  const newPath = isDependency ? join(packagePath, "../", path) : relativePath;
-
-  if (!newPath) {
-    return null;
+  if (isDependency) {
+    return browserResolve.sync(path, { basedir: dirname(currentPath) });
   }
 
   if (aliases[path]) {
     return aliases[path];
   }
 
-  const nodeResolvedNewPath = nodeResolvePath(newPath);
-  if (nodeResolvedNewPath && aliases[nodeResolvedNewPath]) {
-    return aliases[nodeResolvedNewPath];
-  }
-
-  return newPath;
+  return relativePath;
 }
 
 function buildRequireObject(
@@ -113,7 +107,7 @@ export default async function findRequires(
   rootPath: string,
   packageInfos: { [dep: string]: IPackageInfo },
   aliases: IAliases,
-) {
+): Promise<{ contents: IFileData; aliases: { [path: string]: string } }> {
   if (!packageInfos[packageName]) {
     return { contents: {}, aliases: {} };
   }

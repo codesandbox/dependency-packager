@@ -15,9 +15,9 @@ function exists(path: string) {
  * @export string if path exists
  * @param {string} path
  */
-export default function readFile(path: string) {
+export default function readFile(path: string, file: string = "index.js") {
   if (exists(path) && fs.lstatSync(path).isDirectory()) {
-    return exists(join(path, "index.js"));
+    return exists(join(path, file));
   } else {
     return exists(path) || exists(path + ".js") || exists(path + ".json");
   }

@@ -1,11 +1,11 @@
 import { Callback, Context } from "aws-lambda";
 import { S3 } from "aws-sdk";
-import * as path from "path";
 
+import * as path from "path";
+import * as Raven from "raven";
 import * as rimraf from "rimraf";
 
-import * as Raven from "raven";
-
+import findDependencyDependencies from "./dependencies/find-dependency-dependencies";
 import installDependencies from "./dependencies/install-dependencies";
 import parseDependency from "./dependencies/parse-dependency";
 
@@ -31,7 +31,7 @@ export async function call(event: any, context: Context, cb: Callback) {
 
   const dependency = event;
   const hash = getHash(dependency);
-  const a = Date.now();
+  const t = Date.now();
 
   if (!hash) {
     return;
@@ -79,21 +79,33 @@ export async function call(event: any, context: Context, cb: Callback) {
       {},
     );
 
-    console.log("Done - " + (Date.now() - a) + " - " + packagePath);
+    console.log(
+      "Done - " +
+        (Date.now() - t) +
+        " - " +
+        dependency.name +
+        "@" +
+        dependency.version,
+    );
+
+    const requireStatements = new Set();
+    Object.keys(contents).forEach(p => {
+      const c = contents[p];
+
+      if (c.requires) {
+        c.requires.forEach(r => requireStatements.add(r));
+      }
+    });
 
     const response = {
       aliases: newAliases,
       contents,
       dependency,
-      dependencyDependencies: Object.keys(packageInfos)
-        .filter(x => x !== dependency.name)
-        .reduce(
-          (total, depName) => ({
-            ...total,
-            [depName]: packageInfos[depName].package.version,
-          }),
-          {},
-        ),
+      ...findDependencyDependencies(
+        dependency.name,
+        packageInfos,
+        requireStatements,
+      ),
     };
 
     if (process.env.IN_LAMBDA) {
@@ -136,7 +148,9 @@ export async function call(event: any, context: Context, cb: Callback) {
 }
 
 if (!process.env.IN_LAMBDA) {
+  /* tslint:disable no-var-requires */
   const express = require("express");
+  /* tslint:enable */
 
   const app = express();
 

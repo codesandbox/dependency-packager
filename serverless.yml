@@ -170,10 +170,10 @@ resources:
           ViewerCertificate:
             CloudFrontDefaultCertificate: 'true'
           ## Uncomment the following section in case you want to enable logging for CloudFront requests
-          Logging:
-            IncludeCookies: 'false'
-            Bucket: packager.distribution.logging.s3.amazonaws.com
-            Prefix: packagers3logging
+          # Logging:
+          #   IncludeCookies: 'false'
+          #   Bucket: packager.distribution.logging.s3.amazonaws.com
+          #   Prefix: packagers3logging
   Outputs:
     S3PackagesCloudFrontOutput:
       Value:

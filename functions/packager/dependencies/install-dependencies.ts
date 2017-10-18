@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { join } from "path";
 
-export default function(
+export default function installDependencies(
   dependency: { name: string; version: string },
   packagePath: string,
 ) {

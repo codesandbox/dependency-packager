@@ -5,8 +5,9 @@ import * as path from "path";
 import getHash from "./utils/get-hash";
 
 import parseDependencies from "./dependencies/parse-dependencies";
+import mergeResults from "./merge-results";
 
-interface ILambdaResponse {
+export interface ILambdaResponse {
   aliases: {
     [path: string]: string | false;
   };
@@ -17,8 +18,16 @@ interface ILambdaResponse {
     name: string;
     version: string;
   };
-  dependencyDependencies: {
+  peerDependencies: {
     [dep: string]: string;
+  };
+  dependencyDependencies: {
+    [dep: string]: {
+      semver: string;
+      resolved: string;
+      parents: string[];
+      entries: string[];
+    };
   };
 }
 
@@ -30,21 +39,6 @@ const lambda = new aws.Lambda({
 
 const s3 = new aws.S3();
 const { BUCKET_NAME } = process.env;
-
-function mergeResults(responses: ILambdaResponse[]) {
-  return responses.reduce(
-    (total, next) => ({
-      aliases: { ...total.aliases, ...next.aliases },
-      contents: { ...total.contents, ...next.contents },
-      dependencies: [...total.dependencies, next.dependency],
-      dependencyDependencies: {
-        ...total.dependencyDependencies,
-        ...next.dependencyDependencies,
-      },
-    }),
-    { aliases: {}, contents: {}, dependencies: [], dependencyDependencies: {} },
-  );
-}
 
 function getFileFromS3(
   keyPath: string,

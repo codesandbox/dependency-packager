@@ -12,6 +12,12 @@
   version "0.0.16"
   resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-0.0.16.tgz#12dd6936d0f1e1c0ef6fc2fbd2d0a461889d7f56"
 
+"@types/browser-resolve@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@types/browser-resolve/-/browser-resolve-0.0.5.tgz#4d7ea4babcbfa45752a5cdc016c0a0fc4dc4de7d"
+  dependencies:
+    "@types/resolve" "*"
+
 "@types/estree@*":
   version "0.0.37"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-0.0.37.tgz#48949c1516d46139c1e521195f9e12993b69d751"
@@ -68,12 +74,22 @@
   dependencies:
     "@types/node" "*"
 
+"@types/resolve@*":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@types/resolve/-/resolve-0.0.4.tgz#9b586d65a947dea88c4bc24da0b905fe9520a0d5"
+  dependencies:
+    "@types/node" "*"
+
 "@types/rimraf@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@types/rimraf/-/rimraf-2.0.2.tgz#7f0fc3cf0ff0ad2a99bb723ae1764f30acaf8b6e"
   dependencies:
     "@types/glob" "*"
     "@types/node" "*"
+
+"@types/semver@^5.4.0":
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/@types/semver/-/semver-5.4.0.tgz#f3658535af7f1f502acd6da7daf405ffeb1f7ee4"
 
 "@types/serve-static@*":
   version "1.7.32"
