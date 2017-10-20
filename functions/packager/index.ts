@@ -9,8 +9,8 @@ import findDependencyDependencies from "./dependencies/find-dependency-dependenc
 import installDependencies from "./dependencies/install-dependencies";
 import parseDependency from "./dependencies/parse-dependency";
 
-import findPackageInfos from "./packages/find-package-infos";
-import findRequires from "./packages/find-requires";
+import findPackageInfos, { IPackage } from "./packages/find-package-infos";
+import findRequires, { IFileData } from "./packages/find-requires";
 
 import getHash from "./utils/get-hash";
 
@@ -21,6 +21,30 @@ const { BUCKET_NAME } = process.env;
 Raven.config(env.SENTRY_URL).install();
 
 const s3 = new S3();
+
+async function getContents(
+  dependency: any,
+  packagePath: string,
+  packageInfos: { [p: string]: IPackage },
+): Promise<IFileData> {
+  const contents = await findRequires(
+    dependency.name,
+    packagePath,
+    packageInfos,
+  );
+
+  const packageJSONFiles = Object.keys(packageInfos).reduce(
+    (total, next) => ({
+      ...total,
+      [next.replace(packagePath, "")]: {
+        contents: JSON.stringify(packageInfos[next]),
+      },
+    }),
+    {},
+  );
+
+  return { ...contents, ...packageJSONFiles };
+}
 
 export async function call(event: any, context: Context, cb: Callback) {
   /** Immediate response for WarmUP plugin */
@@ -54,30 +78,7 @@ export async function call(event: any, context: Context, cb: Callback) {
     await installDependencies(dependency, packagePath);
 
     const packageInfos = await findPackageInfos(dependency.name, packagePath);
-
-    const aliases = Object.keys(packageInfos).reduce(
-      (total, name) => ({
-        ...total,
-        [name]: packageInfos[name].main,
-        ...packageInfos[name].aliases,
-      }),
-      {},
-    );
-
-    const { contents, aliases: newAliases } = await findRequires(
-      dependency.name,
-      packagePath,
-      packageInfos,
-      aliases,
-    );
-
-    const packages = Object.keys(packageInfos).reduce(
-      (total, packageName) => ({
-        ...total,
-        [packageName]: packageInfos[packageName].package,
-      }),
-      {},
-    );
+    const contents = await getContents(dependency, packagePath, packageInfos);
 
     console.log(
       "Done - " +
@@ -98,11 +99,11 @@ export async function call(event: any, context: Context, cb: Callback) {
     });
 
     const response = {
-      aliases: newAliases,
       contents,
       dependency,
       ...findDependencyDependencies(
-        dependency.name,
+        dependency,
+        packagePath,
         packageInfos,
         requireStatements,
       ),

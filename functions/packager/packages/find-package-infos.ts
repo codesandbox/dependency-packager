@@ -1,12 +1,13 @@
+import { flatten } from "lodash";
 import { fs } from "mz";
-import { dirname, join } from "path";
+import { basename, dirname, join } from "path";
 
 import nodeResolvePath from "./utils/node-resolve-path";
 
 export interface IPackage {
   name: string;
   main?: string;
-  browser?: string | { [path: string]: string };
+  browser?: string | { [path: string]: string | false };
   unpkg?: string;
   module?: string;
   version: string;
@@ -19,18 +20,35 @@ export interface IPackage {
   [key: string]: any;
 }
 
-export interface IPackageInfo {
-  package: IPackage;
-  main: string | undefined;
-  aliases: { [key: string]: string };
-}
-
-function getDirectories(path: string) {
-  const directories = fs.readdirSync(path);
-
-  return directories
+function getDirectories(path: string): string[] {
+  const directories = fs
+    .readdirSync(path)
     .filter(file => !file.startsWith("."))
-    .filter(file => fs.lstatSync(join(path, file)).isDirectory());
+    .filter(file => fs.lstatSync(join(path, file)).isDirectory())
+    .map(file => join(path, file));
+
+  return flatten(
+    directories.map(directory => {
+      if (basename(directory).startsWith("@")) {
+        // We will check what inside this directory if it starts with an @, because
+        // this means that it's under an organization
+
+        return getDirectories(directory);
+      }
+
+      const directoriesInDirectory = getDirectories(directory);
+      // There is a chance of a recursive node_modules, make sure to add it as well
+      const nodeModulesInside = directoriesInDirectory.find(
+        d => basename(d) === "node_modules",
+      );
+
+      if (nodeModulesInside) {
+        return [directory, ...getDirectories(nodeModulesInside)];
+      }
+
+      return directory;
+    }),
+  );
 }
 
 // Fields to check, in this order
@@ -78,58 +96,23 @@ function transformBrowserRequires(
   }, {});
 }
 
-export default async function findAliases(
+export default async function findPackageInfos(
   packageName: string,
   rootPath: string,
-): Promise<{ [depName: string]: IPackageInfo }> {
-  const directories = getDirectories(
-    join(rootPath, "node_modules"),
-  ).reduce((total, next) => {
-    if (next.startsWith("@")) {
-      // We will check what inside this directory if it starts with an @, because
-      // this means that it's under an organization
+): Promise<{ [depName: string]: IPackage }> {
+  const directories = getDirectories(join(rootPath, "node_modules"));
 
-      return [
-        ...total,
-        ...getDirectories(join(rootPath, "node_modules", next)).map(dir =>
-          join(next, dir),
-        ),
-      ];
-    }
+  const result: { [depName: string]: IPackage } = {};
 
-    return [...total, next];
-  }, []);
-
-  const packageJSONs = await Promise.all(
-    directories.map(async name => {
-      const contents = await fs.readFile(
-        join(rootPath, "node_modules", name, "package.json"),
-      );
-
-      const pkg: IPackage = JSON.parse(contents.toString());
-
-      return { name, package: pkg };
+  await Promise.all(
+    directories.map(async path => {
+      const pkgPath = join(path, "package.json");
+      if (fs.existsSync(pkgPath)) {
+        const contents = (await fs.readFile(pkgPath)).toString();
+        result[pkgPath] = JSON.parse(contents);
+      }
     }),
   );
 
-  return packageJSONs.reduce((total, next) => {
-    const mainPath = getMainField(next.package) || "index.js";
-    const packagePath = join(rootPath, "node_modules", next.name);
-
-    const path = nodeResolvePath(join(packagePath, mainPath));
-
-    const browserAliases = transformBrowserRequires(
-      next.package.browser,
-      packagePath,
-    );
-
-    return {
-      ...total,
-      [next.name]: {
-        aliases: browserAliases,
-        main: path && (browserAliases[path] || path),
-        package: next.package,
-      },
-    };
-  }, {});
+  return result;
 }

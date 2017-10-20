@@ -1,7 +1,7 @@
 import { fs } from "mz";
 import { dirname, join } from "path";
 
-import { IPackageInfo } from "./find-package-infos";
+import { IPackage } from "./find-package-infos";
 import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
@@ -12,40 +12,26 @@ interface IAliases {
   [alias: string]: string | false | null;
 }
 
-interface IFileData {
+export interface IFileData {
   [path: string]: {
     content: string;
     requires?: string[];
   };
 }
 
-function rewritePath(
-  path: string,
-  currentPath: string,
-  packagePath: string,
-  aliases: IAliases,
-) {
+function rewritePath(path: string, currentPath: string, packagePath: string) {
   const relativePath = nodeResolvePath(join(dirname(currentPath), path));
   const isDependency = /^(\w|@\w)/.test(path);
 
-  if (isDependency) {
-    return browserResolve.sync(path, { basedir: dirname(currentPath) });
-  }
-
-  if (aliases[path]) {
-    return aliases[path];
-  }
-
-  return relativePath;
+  return browserResolve.sync(path, { filename: currentPath });
 }
 
 function buildRequireObject(
   filePath: string,
   packagePath: string,
   existingContents: IFileData,
-  aliases: IAliases,
 ): IFileData {
-  const fileData = getFileData(filePath, existingContents, aliases);
+  const fileData = getFileData(filePath, existingContents);
 
   if (!fileData) {
     return existingContents;
@@ -64,13 +50,13 @@ function buildRequireObject(
     existingContents[fileData.path].requires = extractedRequires;
 
     extractedRequires.forEach(requirePath => {
-      const newPath = rewritePath(requirePath, filePath, packagePath, aliases);
+      const newPath = rewritePath(requirePath, filePath, packagePath);
 
       if (!newPath) {
         return;
       }
 
-      buildRequireObject(newPath, packagePath, existingContents, aliases);
+      buildRequireObject(newPath, packagePath, existingContents);
     });
 
     return existingContents;
@@ -79,11 +65,7 @@ function buildRequireObject(
   }
 }
 
-function getFileData(
-  filePath: string,
-  existingContents: IFileData,
-  aliases: IAliases,
-) {
+function getFileData(filePath: string, existingContents: IFileData) {
   const resolvedPath = nodeResolvePath(filePath);
   if (!resolvedPath) {
     // console.log('Warning: could not find "' + filePath + '"');
@@ -105,51 +87,41 @@ function getFileData(
 export default async function findRequires(
   packageName: string,
   rootPath: string,
-  packageInfos: { [dep: string]: IPackageInfo },
-  aliases: IAliases,
-): Promise<{ contents: IFileData; aliases: { [path: string]: string } }> {
-  if (!packageInfos[packageName]) {
-    return { contents: {}, aliases: {} };
-  }
-
+  packageInfos: { [dep: string]: IPackage },
+): Promise<IFileData> {
   const packagePath = join(rootPath, "node_modules", packageName);
+  const packageJSONPath = join(
+    rootPath,
+    "node_modules",
+    packageName,
+    "package.json",
+  );
+
+  if (!packageInfos[packageJSONPath]) {
+    return {};
+  }
 
   const requiredFiles = await resolveRequiredFiles(
     packagePath,
-    packageInfos[packageName],
+    packageInfos[packageJSONPath],
   );
 
   let files: IFileData = {};
 
   for (const file of requiredFiles) {
     if (file) {
-      const newFiles = await buildRequireObject(
-        file,
-        packagePath,
-        files,
-        aliases,
-      );
+      const newFiles = await buildRequireObject(file, packagePath, files);
       files = { ...files, ...newFiles };
     }
   }
 
-  const nodeModulesPath = join(rootPath, "node_modules") + "/";
   const relativeFiles = Object.keys(files).reduce(
     (total, next) => ({
       ...total,
-      [next.replace(nodeModulesPath, "")]: files[next],
+      [next.replace(rootPath, "")]: files[next],
     }),
     {},
   );
 
-  const relativeAliases = Object.keys(aliases).reduce((total, next) => {
-    const aliasPath = aliases[next];
-    return {
-      ...total,
-      [next.replace(nodeModulesPath, "")]:
-        aliasPath && aliasPath.replace(nodeModulesPath, ""),
-    };
-  }, {});
-
-  return { contents: relativeFiles, aliases: relativeAliases };
+  return relativeFiles;
 }

@@ -8,9 +8,6 @@ import parseDependencies from "./dependencies/parse-dependencies";
 import mergeResults from "./merge-results";
 
 export interface ILambdaResponse {
-  aliases: {
-    [path: string]: string | false;
-  };
   contents: {
     [path: string]: string;
   };
@@ -27,6 +24,11 @@ export interface ILambdaResponse {
       resolved: string;
       parents: string[];
       entries: string[];
+    };
+  };
+  dependencyAliases: {
+    [dep: string]: {
+      [dep: string]: string;
     };
   };
 }
@@ -131,6 +133,8 @@ function generateDependency(
       },
       (error, data) => {
         if (error) {
+          error.message = `Error while packaging ${name}@${version}: ${error.message}`;
+
           reject(error);
           return;
         }
@@ -213,9 +217,9 @@ export async function http(event: any, context: Context, cb: Callback) {
         receivedData.push(data);
       }
 
-      const body = JSON.stringify(mergeResults(receivedData));
-
       if (receivedData.length === Object.keys(dependencies).length) {
+        const body = JSON.stringify(mergeResults(receivedData));
+
         await saveFileToS3(bundlePath, body);
         cb(undefined, getResponse(bundlePath));
       }

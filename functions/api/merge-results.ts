@@ -6,6 +6,22 @@ import { ILambdaResponse } from "./";
 import findConflicts from "./dependencies/find-conflicts";
 import findMatchingVersion from "./dependencies/utils/find-matching-version";
 
+interface IDepDepInfo {
+  semver: string;
+  resolved: string;
+  parents: string[];
+  entries: string[];
+}
+
+interface IResponse {
+  contents: { [path: string]: string };
+  dependencies: Array<{ name: string; version: string }>;
+  dependencyAliases: { [dep: string]: { [dep: string]: string } };
+  dependencyDependencies: {
+    [dep: string]: IDepDepInfo;
+  };
+}
+
 /**
  * Compare two sorted string arrays
  *
@@ -40,64 +56,90 @@ function replacePaths(
   newName: string,
 ) {
   Object.keys(paths).forEach(al => {
-    if (al.startsWith(`${oldName}/`)) {
-      paths[al.replace(`${oldName}/`, `${newName}/`)] = paths[al].replace(
-        `${oldName}/`,
-        `${newName}/`,
-      );
-
-      delete paths[al];
-    }
-
-    if (al === oldName) {
-      paths[al.replace(`${oldName}`, `${newName}`)] = paths[al].replace(
-        `${oldName}/`,
-        `${newName}/`,
-      );
+    if (al.startsWith(`${oldName}/`) || al === oldName) {
+      paths[al.replace(oldName, newName)] =
+        typeof paths[al] === "string"
+          ? paths[al].replace(oldName, newName)
+          : paths[al];
 
       delete paths[al];
     }
   });
 }
 
-export default function mergeResults(responses: ILambdaResponse[]) {
-  const dependencyConflictInfo = findConflicts(responses);
-
-  const conflictingDependencies = Object.keys(dependencyConflictInfo).filter(
-    n => Object.keys(dependencyConflictInfo[n]).length > 1,
+function replaceDependencyInfo(
+  r: ILambdaResponse,
+  depDepName: string,
+  newDepDep: IDepDepInfo,
+) {
+  console.log(
+    "Resolving conflict for " +
+      depDepName +
+      " new version: " +
+      newDepDep.resolved,
   );
 
-  const response: {
-    aliases: { [path: string]: string | false };
-    contents: { [path: string]: string };
-    dependencies: Array<{ name: string; version: string }>;
-    dependencyAliases: { [dep: string]: { [dep: string]: string } };
-    dependencyDependencies: {
-      [dep: string]: {
-        semver: string;
-        resolved: string;
-        parents: string[];
-        entries: string[];
-      };
-    };
-  } = {
-    aliases: {},
+  const newPath = `${depDepName}/${newDepDep.resolved}`;
+
+  replacePaths(
+    r.contents,
+    `/node_modules/${depDepName}`,
+    `/node_modules/${newPath}`,
+  );
+
+  r.dependencyDependencies[newPath] = r.dependencyDependencies[depDepName];
+  delete r.dependencyDependencies[depDepName];
+
+  r.dependencyAliases = r.dependencyAliases || {};
+  newDepDep.parents.forEach(p => {
+    r.dependencyAliases[p] = r.dependencyAliases[p] || {};
+    r.dependencyAliases[p][depDepName] = newPath;
+  });
+  replacePaths(r.dependencyAliases, depDepName, newPath);
+
+  console.log("fixed dependnecodiuhciuh");
+
+  for (const n of Object.keys(r.dependencyDependencies)) {
+    r.dependencyDependencies[n].parents = r.dependencyDependencies[
+      n
+    ].parents.map(p => (p === depDepName ? newPath : depDepName));
+  }
+
+  console.log("Resolved!");
+}
+
+export default function mergeResults(responses: ILambdaResponse[]) {
+  // For consistency between requests
+  const sortedResponses = responses.sort((a, b) =>
+    a.dependency.name.localeCompare(b.dependency.name),
+  );
+
+  const response: IResponse = {
     contents: {},
-    dependencies: [],
+    dependencies: sortedResponses.map(r => r.dependency),
     dependencyAliases: {},
     dependencyDependencies: {},
   };
 
-  for (const r of responses) {
-    Object.keys(r.dependencyDependencies).forEach(depDepName => {
-      if (
-        response.dependencyDependencies[depDepName] ||
-        response.dependencies.find(x => x.name === depDepName)
-      ) {
-        const exDepDep =
-          response.dependencyDependencies[depDepName] ||
-          response.dependencies.find(x => x.name === depDepName);
-        const newDepDep = r.dependencyDependencies[depDepName];
+  for (const r of sortedResponses) {
+    for (let i = 0; i < Object.keys(r.dependencyDependencies).length; i++) {
+      const depDepName = Object.keys(r.dependencyDependencies)[i];
+
+      console.log("Looking at " + depDepName);
+      const newDepDep = r.dependencyDependencies[depDepName];
+      const rootDependency = response.dependencies.find(
+        d => d.name === depDepName,
+      );
+
+      if (rootDependency) {
+        // If a root dependency is in conflict with a child dependency, we always
+        // go for the root dependency
+        replaceDependencyInfo(r, depDepName, newDepDep);
+
+        // Start from the beginning, to make sure everything is correct
+        i = -1;
+      } else if (response.dependencyDependencies[depDepName]) {
+        const exDepDep = response.dependencyDependencies[depDepName];
 
         if (exDepDep.resolved === newDepDep.resolved) {
           exDepDep.parents = uniq([...exDepDep.parents, ...newDepDep.parents]);
@@ -120,30 +162,22 @@ export default function mergeResults(responses: ILambdaResponse[]) {
               ...newDepDep.parents,
             ]);
           } else {
-            const newPath = `${depDepName}/${newDepDep.resolved}`;
-
-            replacePaths(r.aliases, depDepName, newPath);
-            replacePaths(r.contents, depDepName, newPath);
-            r.dependencyDependencies[newPath] =
-              r.dependencyDependencies[depDepName];
-            delete r.dependencyDependencies[depDepName];
-
-            newDepDep.parents.forEach(p => {
-              response.dependencyAliases[p] =
-                response.dependencyAliases[p] || {};
-              response.dependencyAliases[p][depDepName] = newPath;
-            });
+            replaceDependencyInfo(r, depDepName, newDepDep);
+            // Start from the beginning, to make sure everything is correct
+            i = -1;
           }
         }
       } else {
         response.dependencyDependencies[depDepName] =
           r.dependencyDependencies[depDepName];
       }
-    });
+    }
 
-    response.aliases = { ...response.aliases, ...r.aliases };
+    response.dependencyAliases = {
+      ...response.dependencyAliases,
+      ...r.dependencyAliases,
+    };
     response.contents = { ...response.contents, ...r.contents };
-    response.dependencies = [...response.dependencies, r.dependency];
   }
 
   return response;

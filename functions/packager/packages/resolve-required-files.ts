@@ -1,7 +1,7 @@
 import { flatten } from "lodash";
 import { fs } from "mz";
 import { basename, dirname, join } from "path";
-import { IPackageInfo } from "./find-package-infos";
+import { IPackage } from "./find-package-infos";
 
 const BLACKLISTED_DIRS = [
   "demo",
@@ -90,7 +90,7 @@ const FALLBACK_DIRS = ["dist", "lib", "build"];
 
 export default async function resolveRequiredFiles(
   packagePath: string,
-  packageInfo: IPackageInfo,
+  packageInfo: IPackage,
 ) {
   const main = packageInfo.main;
 
@@ -101,14 +101,46 @@ export default async function resolveRequiredFiles(
       dir => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
     );
   } else {
-    entryDir = dirname(main);
+    entryDir = join(packagePath, dirname(main));
   }
 
   if (!entryDir) {
     return [];
   }
 
-  const files = await getFilePathsInDirectory(entryDir);
+  const browser =
+    typeof packageInfo.browser === "object" ? packageInfo.browser : {};
 
-  return [...files.filter(isValidFile), main];
+  const browserAliases: { [p: string]: string | false } = Object.keys(
+    browser,
+  ).reduce((total, path: string) => {
+    const relativePath = join(packagePath, path);
+    let resolvedPath = browser[path];
+    if (resolvedPath !== false) {
+      resolvedPath = join(packagePath, resolvedPath);
+    }
+
+    return {
+      ...total,
+      [relativePath]: resolvedPath,
+    };
+  }, {});
+
+  const files: string[] = (await getFilePathsInDirectory(entryDir))
+    .filter(isValidFile)
+    .map(path => {
+      if (typeof browserAliases === "object") {
+        if (browserAliases[path] === false) {
+          return null;
+        }
+
+        if (browserAliases[path]) {
+          return browserAliases[path];
+        }
+      }
+      return path;
+    })
+    .filter(x => x != null) as string[];
+
+  return [...files, main];
 }

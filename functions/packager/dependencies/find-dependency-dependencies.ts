@@ -1,7 +1,10 @@
-import { IPackageInfo } from "../packages/find-package-infos";
+import * as resolve from "browser-resolve";
+import { dirname, join } from "path";
+
+import { IPackage } from "../packages/find-package-infos";
 
 interface IPackageInfos {
-  [depName: string]: IPackageInfo;
+  [depName: string]: IPackage;
 }
 
 interface IDependencyDependenciesInfo {
@@ -20,13 +23,18 @@ function findDependencies(
   dep: string,
   packageInfos: IPackageInfos,
   requiresByDependencies: { [dep: string]: string[] },
+  basedir: string,
   totalObject: IDependencyDependenciesInfo,
 ) {
-  if (!packageInfos[dep]) {
+  const packageJSONPath = resolve.sync(join(dep, "package.json"), {
+    basedir,
+  });
+
+  if (!packageInfos[packageJSONPath]) {
     return;
   }
 
-  const mainPackageInfo = packageInfos[dep].package;
+  const mainPackageInfo = packageInfos[packageJSONPath];
 
   if (mainPackageInfo.peerDependencies) {
     totalObject.peerDependencies = {
@@ -38,9 +46,15 @@ function findDependencies(
   const dependencies = mainPackageInfo.dependencies;
   if (dependencies) {
     Object.keys(dependencies).forEach(name => {
-      if (!packageInfos[name]) {
+      const depPackagePath = resolve.sync(join(name, "package.json"), {
+        basedir,
+      });
+
+      if (!packageInfos[depPackagePath]) {
         return;
       }
+
+      const depPackageInfo = packageInfos[depPackagePath];
 
       if (totalObject.dependencyDependencies[name]) {
         if (
@@ -53,11 +67,17 @@ function findDependencies(
 
       totalObject.dependencyDependencies[name] = {
         semver: dependencies[name],
-        resolved: packageInfos[name].package.version,
+        resolved: depPackageInfo.version,
         parents: [dep],
         entries: (requiresByDependencies[name] || []).sort(),
       };
-      findDependencies(name, packageInfos, requiresByDependencies, totalObject);
+      findDependencies(
+        name,
+        packageInfos,
+        requiresByDependencies,
+        dirname(depPackagePath),
+        totalObject,
+      );
     });
   }
 
@@ -65,7 +85,8 @@ function findDependencies(
 }
 
 export default function findDependencyDependencies(
-  dep: string,
+  dep: { name: string; version: string },
+  rootPath: string,
   packageInfos: IPackageInfos,
   requires: Set<string>,
 ) {
@@ -94,5 +115,11 @@ export default function findDependencyDependencies(
     requireObject[dependencyName].push(requireDep);
   }
 
-  return findDependencies(dep, packageInfos, requireObject, totalObject);
+  return findDependencies(
+    dep.name,
+    packageInfos,
+    requireObject,
+    join(rootPath, "node_modules", dep.name),
+    totalObject,
+  );
 }
