@@ -41,7 +41,19 @@ function replacePaths(
 ) {
   Object.keys(paths).forEach(al => {
     if (al.startsWith(`${oldName}/`)) {
-      paths[al.replace(`${oldName}/`, `${newName}/`)] = paths[al];
+      paths[al.replace(`${oldName}/`, `${newName}/`)] = paths[al].replace(
+        `${oldName}/`,
+        `${newName}/`,
+      );
+
+      delete paths[al];
+    }
+
+    if (al === oldName) {
+      paths[al.replace(`${oldName}`, `${newName}`)] = paths[al].replace(
+        `${oldName}/`,
+        `${newName}/`,
+      );
 
       delete paths[al];
     }
@@ -78,8 +90,13 @@ export default function mergeResults(responses: ILambdaResponse[]) {
 
   for (const r of responses) {
     Object.keys(r.dependencyDependencies).forEach(depDepName => {
-      if (response.dependencyDependencies[depDepName]) {
-        const exDepDep = response.dependencyDependencies[depDepName];
+      if (
+        response.dependencyDependencies[depDepName] ||
+        response.dependencies.find(x => x.name === depDepName)
+      ) {
+        const exDepDep =
+          response.dependencyDependencies[depDepName] ||
+          response.dependencies.find(x => x.name === depDepName);
         const newDepDep = r.dependencyDependencies[depDepName];
 
         if (exDepDep.resolved === newDepDep.resolved) {

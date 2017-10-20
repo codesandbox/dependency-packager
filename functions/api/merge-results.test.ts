@@ -173,4 +173,112 @@ describe("mergeResults", () => {
 
     expect(merge).toMatchSnapshot();
   });
+
+  it("can merge responses with conflicts recursively", () => {
+    const conflict1: ILambdaResponse = {
+      aliases: {
+        react: "react/lib/react.development.js",
+        fbjs: "fbjs/lib/index.js",
+      },
+      contents: {
+        "react/lib/react.development.js": "yes",
+        "fbjs/lib/index.js": "yes yes c",
+      },
+      dependency: {
+        name: "conflict1",
+        version: "16.0.0",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict1"],
+          resolved: "12.0.1",
+          semver: "^12.2.0",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const conflict2: ILambdaResponse = {
+      aliases: {
+        react: "react/lib/react.development.js",
+        fbjs: "fbjs/lib/index.js",
+      },
+      contents: {
+        "react/lib/react.development.js": "yes",
+        "fbjs/lib/index.js": "yes yes 11.0.2",
+      },
+      dependency: {
+        name: "conflict2",
+        version: "16.0.0",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict2"],
+          resolved: "11.0.2",
+          semver: "^11.2.0",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const merge = mergeResults([react, reactDom, conflict1, conflict2]);
+
+    expect(merge).toMatchSnapshot();
+  });
+
+  it("can merge responses with multiple conflicts", () => {
+    const conflict1: ILambdaResponse = {
+      aliases: {
+        react: "react/lib/react.development.js",
+        fbjs: "fbjs/lib/index.js",
+      },
+      contents: {
+        "react/lib/react.development.js": "yes",
+        "fbjs/lib/index.js": "yes yes c",
+      },
+      dependency: {
+        name: "conflict1",
+        version: "16.0.0",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict1"],
+          resolved: "12.0.1",
+          semver: "^12.2.0",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const conflict2: ILambdaResponse = {
+      aliases: {
+        react: "react/lib/react.development.js",
+        fbjs: "fbjs/lib/index.js",
+      },
+      contents: {
+        "react/lib/react.development.js": "yes",
+        "fbjs/lib/index.js": "yes yes",
+      },
+      dependency: {
+        name: "conflict2",
+        version: "16.0.0",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict2"],
+          resolved: "12.0.1",
+          semver: "^12.2.0",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const merge = mergeResults([react, reactDom, conflict1, conflict2]);
+
+    expect(merge).toMatchSnapshot();
+  });
 });
