@@ -45,24 +45,31 @@ function buildRequireObject(
     return existingContents;
   }
 
+  let extractedRequires = null;
   try {
-    const extractedRequires = extractRequires(fileData.content);
-    existingContents[fileData.path].requires = extractedRequires;
-
-    extractedRequires.forEach(requirePath => {
-      const newPath = rewritePath(requirePath, filePath, packagePath);
-
-      if (!newPath) {
-        return;
-      }
-
-      buildRequireObject(newPath, packagePath, existingContents);
-    });
-
-    return existingContents;
+    extractedRequires = extractRequires(fileData.content);
   } catch (e) {
     return existingContents;
   }
+  existingContents[fileData.path].requires = extractedRequires;
+
+  extractedRequires.forEach(requirePath => {
+    let newPath = null;
+    try {
+      newPath = rewritePath(requirePath, filePath, packagePath);
+    } catch (e) {
+      console.warn(`Couldn't find ${requirePath}`);
+      return;
+    }
+
+    if (!newPath) {
+      return;
+    }
+
+    buildRequireObject(newPath, packagePath, existingContents);
+  });
+
+  return existingContents;
 }
 
 function getFileData(filePath: string, existingContents: IFileData) {

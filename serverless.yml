@@ -62,7 +62,7 @@ functions:
     events:
       - http:
           path: /packages/{packages}
-          method: get
+          method: post
           cors: true
           request:
             parameters:

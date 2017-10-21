@@ -92,7 +92,10 @@ export default async function resolveRequiredFiles(
   packagePath: string,
   packageInfo: IPackage,
 ) {
-  const main = packageInfo.main;
+  const main =
+    typeof packageInfo.browser === "string"
+      ? packageInfo.browser
+      : packageInfo.main;
 
   let entryDir;
 
@@ -142,5 +145,9 @@ export default async function resolveRequiredFiles(
     })
     .filter(x => x != null) as string[];
 
-  return [...files, main];
+  if (main) {
+    files.push(join(packagePath, main));
+  }
+
+  return files;
 }

@@ -37,7 +37,7 @@ async function getContents(
     (total, next) => ({
       ...total,
       [next.replace(packagePath, "")]: {
-        contents: JSON.stringify(packageInfos[next]),
+        content: JSON.stringify(packageInfos[next]),
       },
     }),
     {},
