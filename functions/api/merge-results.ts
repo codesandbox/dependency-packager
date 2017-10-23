@@ -3,7 +3,6 @@ import * as semver from "semver";
 
 import { ILambdaResponse } from "./";
 
-import findConflicts from "./dependencies/find-conflicts";
 import findMatchingVersion from "./dependencies/utils/find-matching-version";
 
 interface IDepDepInfo {
@@ -90,22 +89,18 @@ function replaceDependencyInfo(
   r.dependencyDependencies[newPath] = r.dependencyDependencies[depDepName];
   delete r.dependencyDependencies[depDepName];
 
+  for (const n of Object.keys(r.dependencyDependencies)) {
+    r.dependencyDependencies[n].parents = r.dependencyDependencies[
+      n
+    ].parents.map(p => (p === depDepName ? newPath : p));
+  }
+
   r.dependencyAliases = r.dependencyAliases || {};
   newDepDep.parents.forEach(p => {
     r.dependencyAliases[p] = r.dependencyAliases[p] || {};
     r.dependencyAliases[p][depDepName] = newPath;
   });
   replacePaths(r.dependencyAliases, depDepName, newPath);
-
-  console.log("fixed dependnecodiuhciuh");
-
-  for (const n of Object.keys(r.dependencyDependencies)) {
-    r.dependencyDependencies[n].parents = r.dependencyDependencies[
-      n
-    ].parents.map(p => (p === depDepName ? newPath : depDepName));
-  }
-
-  console.log("Resolved!");
 }
 
 export default function mergeResults(responses: ILambdaResponse[]) {
@@ -125,7 +120,6 @@ export default function mergeResults(responses: ILambdaResponse[]) {
     for (let i = 0; i < Object.keys(r.dependencyDependencies).length; i++) {
       const depDepName = Object.keys(r.dependencyDependencies)[i];
 
-      console.log("Looking at " + depDepName);
       const newDepDep = r.dependencyDependencies[depDepName];
       const rootDependency = response.dependencies.find(
         d => d.name === depDepName,

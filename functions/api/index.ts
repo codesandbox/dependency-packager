@@ -104,6 +104,7 @@ function getS3BundlePath(dependencies: IDependencies) {
   return (
     "combinations/" +
     Object.keys(dependencies)
+      .filter(d => d !== "node-libs-browser")
       .sort()
       .map(
         // Paths starting with slashes don't work with cloudfront, even escaped. So we remove the slashes
@@ -181,9 +182,8 @@ export async function http(event: any, context: Context, cb: Callback) {
       throw new Error("No BUCKET_NAME provided");
     }
 
-    // TODO test if this is really needed
-    // // Add node-libs-browser
-    // dependencies["node-libs-browser"] = "latest";
+    // Add node-libs-browser
+    dependencies["node-libs-browser"] = "2.0.0";
 
     const bundlePath = getS3BundlePath(dependencies);
     const bundle = await getFileFromS3(bundlePath);
