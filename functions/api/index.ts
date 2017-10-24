@@ -2,6 +2,8 @@ import { Callback, Context } from "aws-lambda";
 import * as aws from "aws-sdk";
 import * as path from "path";
 
+import { VERSION } from "../config";
+
 import getHash from "./utils/get-hash";
 
 import parseDependencies from "./dependencies/parse-dependencies";
@@ -102,7 +104,7 @@ function saveFileToS3(
 
 function getS3BundlePath(dependencies: IDependencies) {
   return (
-    "combinations/" +
+    `v${VERSION}/combinations/` +
     Object.keys(dependencies)
       .filter(d => d !== "node-libs-browser")
       .sort()
@@ -196,7 +198,9 @@ export async function http(event: any, context: Context, cb: Callback) {
     }
 
     Object.keys(dependencies).forEach(async depName => {
-      const depPath = `packages/${depName}/${dependencies[depName]}.json`;
+      const depPath = `v${VERSION}/packages/${depName}/${dependencies[
+        depName
+      ]}.json`;
       const s3Object = await getFileFromS3(depPath);
 
       if (s3Object && s3Object.Body != null) {

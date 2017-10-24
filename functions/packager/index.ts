@@ -14,6 +14,7 @@ import findRequires, { IFileData } from "./packages/find-requires";
 
 import getHash from "./utils/get-hash";
 
+import { VERSION } from "../config";
 import env from "./config.secret";
 
 const { BUCKET_NAME } = process.env;
@@ -118,7 +119,7 @@ export async function call(event: any, context: Context, cb: Callback) {
         {
           Body: JSON.stringify(response),
           Bucket: BUCKET_NAME,
-          Key: `packages/${dependency.name}/${dependency.version}.json`,
+          Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
           ACL: "public-read",
           ContentType: "application/json",
         },
