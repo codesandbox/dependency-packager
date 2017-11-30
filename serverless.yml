@@ -27,7 +27,7 @@ provider:
       Resource: "*"
 
   environment:
-    IN_LAMBDA: true
+    IN_LAMBDA: "true"
     SERVERLESS_STAGE: ${opt:stage}
     BUCKET_NAME: ${self:custom.s3Bucket}
 

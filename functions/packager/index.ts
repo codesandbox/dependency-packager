@@ -47,6 +47,11 @@ async function getContents(
   return { ...contents, ...packageJSONFiles };
 }
 
+// Install git binaries
+/* tslint:disable no-var-requires */
+require("lambda-git")();
+/* tslint:enable */
+
 export async function call(event: any, context: Context, cb: Callback) {
   /** Immediate response for WarmUP plugin */
   if (event.source === "serverless-plugin-warmup") {
@@ -61,21 +66,8 @@ export async function call(event: any, context: Context, cb: Callback) {
   if (!hash) {
     return;
   }
+  const packagePath = path.join("/tmp", hash);
   try {
-    // Cleanup
-    try {
-      rimraf.sync("/tmp/*");
-    } catch (e) {
-      /* ignore */
-    }
-
-    // Install git binaries
-    /* tslint:disable no-var-requires */
-    require("lambda-git")();
-    /* tslint:enable */
-
-    const packagePath = path.join("/tmp", hash);
-
     await installDependencies(dependency, packagePath);
 
     const packageInfos = await findPackageInfos(dependency.name, packagePath);
@@ -119,7 +111,9 @@ export async function call(event: any, context: Context, cb: Callback) {
         {
           Body: JSON.stringify(response),
           Bucket: BUCKET_NAME,
-          Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
+          Key: `v${VERSION}/packages/${dependency.name}/${
+            dependency.version
+          }.json`,
           ACL: "public-read",
           ContentType: "application/json",
         },
@@ -132,8 +126,22 @@ export async function call(event: any, context: Context, cb: Callback) {
       );
     }
 
+    // Cleanup
+    try {
+      rimraf.sync(packagePath);
+    } catch (e) {
+      /* ignore */
+    }
+
     cb(undefined, response);
   } catch (e) {
+    // Cleanup
+    try {
+      rimraf.sync(packagePath);
+    } catch (e) {
+      /* ignore */
+    }
+
     Raven.captureException(
       e,
       {

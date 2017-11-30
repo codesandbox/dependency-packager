@@ -19,6 +19,7 @@
     "lambda-git": "^0.1.1",
     "lodash": "^4.17.4",
     "mz": "^2.7.0",
+    "npm-package-arg": "^6.0.0",
     "pacote": "^6.0.2",
     "raven": "^2.2.1",
     "rimraf": "^2.6.2",
@@ -35,6 +36,7 @@
     "@types/lodash": "^4.14.76",
     "@types/mz": "^0.0.32",
     "@types/node": "^8.0.31",
+    "@types/npm-package-arg": "^5.1.0",
     "@types/raven": "^2.1.2",
     "@types/rimraf": "^2.0.2",
     "@types/semver": "^5.4.0",
@@ -57,8 +59,16 @@
       ".(ts|tsx)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
     "testEnvironment": "node",
-    "moduleFileExtensions": ["ts", "tsx", "js", "json"],
-    "testPathIgnorePatterns": ["<rootDir>/node_modules/", "<rootDir>/dist/"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/dist/"
+    ],
     "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$"
   }
 }

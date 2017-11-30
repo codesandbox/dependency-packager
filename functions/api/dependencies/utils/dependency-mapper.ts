@@ -1,3 +1,4 @@
+import * as npa from "npm-package-arg";
 import * as pacote from "pacote";
 
 /**
@@ -14,6 +15,12 @@ async function getAbsoluteVersions(dependencies: IDependencies) {
   const absoluteDependencies = await Promise.all(
     dependencyNames.map(async depName => {
       const depString = `${depName}@${dependencies[depName]}`;
+
+      const spec = npa(depString);
+
+      if (spec.type === "git") {
+        return { name: depName, version: dependencies[depName] };
+      }
 
       try {
         const manifest = await pacote.manifest(depString);

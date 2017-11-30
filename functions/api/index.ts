@@ -111,9 +111,9 @@ function getS3BundlePath(dependencies: IDependencies) {
       .map(
         // Paths starting with slashes don't work with cloudfront, even escaped. So we remove the slashes
         dep =>
-          `${encodeURIComponent(
-            dep.replace("/", "-").replace("@", ""),
-          )}@${dependencies[dep]}`,
+          `${encodeURIComponent(dep.replace("/", "-").replace("@", ""))}@${
+            dependencies[dep]
+          }`,
       )
       .join("+") +
     ".json"
@@ -127,8 +127,9 @@ function generateDependency(
   return new Promise((resolve, reject) => {
     lambda.invoke(
       {
-        FunctionName: `codesandbox-packager-${process.env
-          .SERVERLESS_STAGE}-packager`,
+        FunctionName: `codesandbox-packager-${
+          process.env.SERVERLESS_STAGE
+        }-packager`,
         Payload: JSON.stringify({
           name,
           version,
@@ -136,7 +137,9 @@ function generateDependency(
       },
       (error, data) => {
         if (error) {
-          error.message = `Error while packaging ${name}@${version}: ${error.message}`;
+          error.message = `Error while packaging ${name}@${version}: ${
+            error.message
+          }`;
 
           reject(error);
           return;
@@ -198,9 +201,9 @@ export async function http(event: any, context: Context, cb: Callback) {
     }
 
     Object.keys(dependencies).forEach(async depName => {
-      const depPath = `v${VERSION}/packages/${depName}/${dependencies[
-        depName
-      ]}.json`;
+      const depPath = `v${VERSION}/packages/${depName}/${
+        dependencies[depName]
+      }.json`;
       const s3Object = await getFileFromS3(depPath);
 
       if (s3Object && s3Object.Body != null) {
