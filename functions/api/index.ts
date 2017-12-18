@@ -218,7 +218,10 @@ export async function http(event: any, context: Context, cb: Callback) {
         if (!data.dependency) {
           return cb(
             new Error(
-              "Something went wrong wile packaging the dependency " + depName,
+              "Something went wrong wile packaging the dependency " +
+                depName +
+                "@" +
+                dependencies[depName],
             ),
           );
         }
