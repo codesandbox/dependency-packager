@@ -190,6 +190,8 @@ export async function http(event: any, context: Context, cb: Callback) {
     // Add node-libs-browser
     dependencies["node-libs-browser"] = "2.0.0";
 
+    console.log("Packaging '" + escapedPackages + "'");
+
     const bundlePath = getS3BundlePath(dependencies);
     const bundle = await getFileFromS3(bundlePath);
 
