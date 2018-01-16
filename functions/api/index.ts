@@ -35,6 +35,12 @@ export interface ILambdaResponse {
   };
 }
 
+const defaultHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+  "Access-Control-Allow-Credentials": true, // Required for cookies, authorization headers with HTTPS
+};
+
 const CACHE_TIME = 60 * 60 * 24; // A day caching
 
 const lambda = new aws.Lambda({
@@ -160,10 +166,8 @@ function getResponse(bundlePath: string) {
     statusCode: 200,
     headers: {
       "Cache-Control": `public, max-age=${CACHE_TIME}`,
-      "Content-Type": "application/json",
       "Content-Length": response.length,
-      "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-      "Access-Control-Allow-Credentials": true, // Required for cookies, authorization headers with HTTPS
+      ...defaultHeaders,
     },
     body: response,
   };
@@ -238,6 +242,13 @@ export async function http(event: any, context: Context, cb: Callback) {
     });
   } catch (e) {
     console.error("ERROR ", e);
-    cb(e);
+
+    const statusCode = e.code && e.code === "E404" ? 404 : 500;
+
+    cb(undefined, {
+      statusCode,
+      body: JSON.stringify({ error: e.message }),
+      headers: defaultHeaders,
+    });
   }
 }
