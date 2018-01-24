@@ -140,6 +140,8 @@ export default function mergeResults(responses: ILambdaResponse[]) {
           exDepDep.entries = uniq([...exDepDep.entries, ...newDepDep.entries]);
         } else {
           if (
+            semver.valid(exDepDep.semver) &&
+            semver.valid(newDepDep.semver) &&
             semver.intersects(exDepDep.semver, newDepDep.semver) &&
             isEqual(exDepDep.entries, newDepDep.entries)
           ) {

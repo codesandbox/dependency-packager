@@ -3,13 +3,9 @@ import mergeResults from "./merge-results";
 
 describe("mergeResults", () => {
   const react: ILambdaResponse = {
-    aliases: {
-      react: "react/lib/react.development.js",
-      fbjs: "fbjs/lib/index.js",
-    },
     contents: {
-      "react/lib/react.development.js": "yes",
-      "fbjs/lib/index.js": "yes yes",
+      "/node_modules/react/lib/react.development.js": "yes",
+      "/node_modules/fbjs/lib/index.js": "yes yes",
     },
     dependency: {
       name: "react",
@@ -26,13 +22,9 @@ describe("mergeResults", () => {
     peerDependencies: {},
   };
   const reactDom: ILambdaResponse = {
-    aliases: {
-      "react-dom": "react-dom/lib/react-dom.development.js",
-      fbjs: "fbjs/lib/index.js",
-    },
     contents: {
-      "react-dom/lib/react-dom.development.js": "yes yes",
-      "fbjs/lib/index.js": "yes yes",
+      "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+      "/node_modules/fbjs/lib/index.js": "yes yes",
     },
     dependency: {
       name: "react-dom",
@@ -56,13 +48,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with absolute conflicts", () => {
     const conflict: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes",
       },
       dependency: {
         name: "conflict",
@@ -86,13 +74,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with absolute+semver conflicts, but same entries", () => {
     const conflict: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes",
       },
       dependency: {
         name: "conflict",
@@ -116,13 +100,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with full semver conflicts", () => {
     const conflict: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes 11",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes 11",
       },
       dependency: {
         name: "conflict",
@@ -146,13 +126,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with semver/absolute conflicts, but different entries", () => {
     const conflict: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes c",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes c",
       },
       dependency: {
         name: "conflict",
@@ -176,13 +152,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with conflicts recursively", () => {
     const conflict1: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes c",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes c",
       },
       dependency: {
         name: "conflict1",
@@ -200,13 +172,9 @@ describe("mergeResults", () => {
     };
 
     const conflict2: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes 11.0.2",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes 11.0.2",
       },
       dependency: {
         name: "conflict2",
@@ -230,13 +198,9 @@ describe("mergeResults", () => {
 
   it("can merge responses with multiple conflicts", () => {
     const conflict1: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes c",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes c",
       },
       dependency: {
         name: "conflict1",
@@ -254,13 +218,9 @@ describe("mergeResults", () => {
     };
 
     const conflict2: ILambdaResponse = {
-      aliases: {
-        react: "react/lib/react.development.js",
-        fbjs: "fbjs/lib/index.js",
-      },
       contents: {
-        "react/lib/react.development.js": "yes",
-        "fbjs/lib/index.js": "yes yes",
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes",
       },
       dependency: {
         name: "conflict2",

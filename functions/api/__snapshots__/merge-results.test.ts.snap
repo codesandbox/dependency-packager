@@ -2,15 +2,10 @@
 
 exports[`mergeResults can merge 2 responses 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
     Object {
@@ -41,17 +36,17 @@ Object {
 
 exports[`mergeResults can merge responses with absolute conflicts 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
+    Object {
+      "name": "conflict",
+      "version": "16.0.0",
+    },
     Object {
       "name": "react",
       "version": "16.0.0",
@@ -60,23 +55,35 @@ Object {
       "name": "react-dom",
       "version": "16.0.0",
     },
-    Object {
-      "name": "conflict",
-      "version": "16.0.0",
-    },
   ],
-  "dependencyAliases": Object {},
+  "dependencyAliases": Object {
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+  },
   "dependencyDependencies": Object {
     "fbjs": Object {
       "entries": Array [
         "fbjs",
       ],
       "parents": Array [
-        "react",
-        "react-dom",
         "conflict",
       ],
       "resolved": "12.0.1",
+      "semver": "^12.0.0",
+    },
+    "fbjs/12.0.0": Object {
+      "entries": Array [
+        "fbjs",
+      ],
+      "parents": Array [
+        "react",
+        "react-dom",
+      ],
+      "resolved": "12.0.0",
       "semver": "^12.0.0",
     },
   },
@@ -85,17 +92,17 @@ Object {
 
 exports[`mergeResults can merge responses with absolute+semver conflicts, but same entries 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
+    Object {
+      "name": "conflict",
+      "version": "16.0.0",
+    },
     Object {
       "name": "react",
       "version": "16.0.0",
@@ -104,24 +111,36 @@ Object {
       "name": "react-dom",
       "version": "16.0.0",
     },
-    Object {
-      "name": "conflict",
-      "version": "16.0.0",
-    },
   ],
-  "dependencyAliases": Object {},
+  "dependencyAliases": Object {
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+  },
   "dependencyDependencies": Object {
     "fbjs": Object {
       "entries": Array [
         "fbjs",
       ],
       "parents": Array [
-        "react",
-        "react-dom",
         "conflict",
       ],
       "resolved": "12.0.1",
       "semver": "^12.2.0",
+    },
+    "fbjs/12.0.0": Object {
+      "entries": Array [
+        "fbjs",
+      ],
+      "parents": Array [
+        "react",
+        "react-dom",
+      ],
+      "resolved": "12.0.0",
+      "semver": "^12.0.0",
     },
   },
 }
@@ -129,29 +148,14 @@ Object {
 
 exports[`mergeResults can merge responses with conflicts recursively 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "fbjs/11.0.2": "fbjs/11.0.2/lib/index.js",
-    "fbjs/12.0.1": "fbjs/12.0.1/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/11.0.2/lib/index.js": "yes yes 11.0.2",
-    "fbjs/12.0.1/lib/index.js": "yes yes c",
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/11.0.2/lib/index.js": "yes yes 11.0.2",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes c",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
-    Object {
-      "name": "react",
-      "version": "16.0.0",
-    },
-    Object {
-      "name": "react-dom",
-      "version": "16.0.0",
-    },
     Object {
       "name": "conflict1",
       "version": "16.0.0",
@@ -160,17 +164,50 @@ Object {
       "name": "conflict2",
       "version": "16.0.0",
     },
+    Object {
+      "name": "react",
+      "version": "16.0.0",
+    },
+    Object {
+      "name": "react-dom",
+      "version": "16.0.0",
+    },
   ],
   "dependencyAliases": Object {
-    "conflict1": Object {
-      "fbjs": "fbjs/12.0.1",
-    },
     "conflict2": Object {
       "fbjs": "fbjs/11.0.2",
+    },
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
     },
   },
   "dependencyDependencies": Object {
     "fbjs": Object {
+      "entries": Array [
+        "fbjs",
+        "fbjs/lib/test.js",
+      ],
+      "parents": Array [
+        "conflict1",
+      ],
+      "resolved": "12.0.1",
+      "semver": "^12.2.0",
+    },
+    "fbjs/11.0.2": Object {
+      "entries": Array [
+        "fbjs",
+        "fbjs/lib/test.js",
+      ],
+      "parents": Array [
+        "conflict2",
+      ],
+      "resolved": "11.0.2",
+      "semver": "^11.2.0",
+    },
+    "fbjs/12.0.0": Object {
       "entries": Array [
         "fbjs",
       ],
@@ -187,19 +224,17 @@ Object {
 
 exports[`mergeResults can merge responses with full semver conflicts 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "fbjs/11.0.1": "fbjs/11.0.1/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/11.0.1/lib/index.js": "yes yes 11",
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes 11",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
+    Object {
+      "name": "conflict",
+      "version": "16.0.0",
+    },
     Object {
       "name": "react",
       "version": "16.0.0",
@@ -208,18 +243,27 @@ Object {
       "name": "react-dom",
       "version": "16.0.0",
     },
-    Object {
-      "name": "conflict",
-      "version": "16.0.0",
-    },
   ],
   "dependencyAliases": Object {
-    "conflict": Object {
-      "fbjs": "fbjs/11.0.1",
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
     },
   },
   "dependencyDependencies": Object {
     "fbjs": Object {
+      "entries": Array [
+        "fbjs",
+      ],
+      "parents": Array [
+        "conflict",
+      ],
+      "resolved": "11.0.1",
+      "semver": "^11.2.0",
+    },
+    "fbjs/12.0.0": Object {
       "entries": Array [
         "fbjs",
       ],
@@ -236,27 +280,13 @@ Object {
 
 exports[`mergeResults can merge responses with multiple conflicts 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "fbjs/12.0.1": "fbjs/12.0.1/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/12.0.1/lib/index.js": "yes yes",
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
-    Object {
-      "name": "react",
-      "version": "16.0.0",
-    },
-    Object {
-      "name": "react-dom",
-      "version": "16.0.0",
-    },
     Object {
       "name": "conflict1",
       "version": "16.0.0",
@@ -265,17 +295,37 @@ Object {
       "name": "conflict2",
       "version": "16.0.0",
     },
+    Object {
+      "name": "react",
+      "version": "16.0.0",
+    },
+    Object {
+      "name": "react-dom",
+      "version": "16.0.0",
+    },
   ],
   "dependencyAliases": Object {
-    "conflict1": Object {
-      "fbjs": "fbjs/12.0.1",
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
     },
-    "conflict2": Object {
-      "fbjs": "fbjs/12.0.1",
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
     },
   },
   "dependencyDependencies": Object {
     "fbjs": Object {
+      "entries": Array [
+        "fbjs",
+        "fbjs/lib/test.js",
+      ],
+      "parents": Array [
+        "conflict1",
+        "conflict2",
+      ],
+      "resolved": "12.0.1",
+      "semver": "^12.2.0",
+    },
+    "fbjs/12.0.0": Object {
       "entries": Array [
         "fbjs",
       ],
@@ -292,19 +342,17 @@ Object {
 
 exports[`mergeResults can merge responses with semver/absolute conflicts, but different entries 1`] = `
 Object {
-  "aliases": Object {
-    "fbjs": "fbjs/lib/index.js",
-    "fbjs/12.0.1": "fbjs/12.0.1/lib/index.js",
-    "react": "react/lib/react.development.js",
-    "react-dom": "react-dom/lib/react-dom.development.js",
-  },
   "contents": Object {
-    "fbjs/12.0.1/lib/index.js": "yes yes c",
-    "fbjs/lib/index.js": "yes yes",
-    "react-dom/lib/react-dom.development.js": "yes yes",
-    "react/lib/react.development.js": "yes",
+    "/node_modules/fbjs/12.0.0/lib/index.js": "yes yes",
+    "/node_modules/fbjs/lib/index.js": "yes yes c",
+    "/node_modules/react-dom/lib/react-dom.development.js": "yes yes",
+    "/node_modules/react/lib/react.development.js": "yes",
   },
   "dependencies": Array [
+    Object {
+      "name": "conflict",
+      "version": "16.0.0",
+    },
     Object {
       "name": "react",
       "version": "16.0.0",
@@ -313,18 +361,28 @@ Object {
       "name": "react-dom",
       "version": "16.0.0",
     },
-    Object {
-      "name": "conflict",
-      "version": "16.0.0",
-    },
   ],
   "dependencyAliases": Object {
-    "conflict": Object {
-      "fbjs": "fbjs/12.0.1",
+    "react": Object {
+      "fbjs": "fbjs/12.0.0",
+    },
+    "react-dom": Object {
+      "fbjs": "fbjs/12.0.0",
     },
   },
   "dependencyDependencies": Object {
     "fbjs": Object {
+      "entries": Array [
+        "fbjs",
+        "fbjs/lib/test.js",
+      ],
+      "parents": Array [
+        "conflict",
+      ],
+      "resolved": "12.0.1",
+      "semver": "^12.2.0",
+    },
+    "fbjs/12.0.0": Object {
       "entries": Array [
         "fbjs",
       ],
