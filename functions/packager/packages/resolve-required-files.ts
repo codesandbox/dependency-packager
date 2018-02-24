@@ -92,7 +92,7 @@ export default async function resolveRequiredFiles(
   packagePath: string,
   packageInfo: IPackage,
 ) {
-  const main =
+  let main =
     typeof packageInfo.browser === "string"
       ? packageInfo.browser
       : packageInfo.main;
@@ -108,7 +108,13 @@ export default async function resolveRequiredFiles(
   }
 
   if (!entryDir) {
-    return [];
+    const indexFileExists = fs.existsSync(join(packagePath, "index.js"));
+    if (indexFileExists) {
+      main = "index.js";
+      entryDir = packagePath;
+    } else {
+      return [];
+    }
   }
 
   const browser =
