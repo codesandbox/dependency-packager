@@ -51,6 +51,7 @@ function buildRequireObject(
   } catch (e) {
     return existingContents;
   }
+
   existingContents[fileData.path].requires = extractedRequires;
 
   extractedRequires.forEach(requirePath => {

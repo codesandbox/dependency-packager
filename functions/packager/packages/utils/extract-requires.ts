@@ -1,5 +1,10 @@
 import * as acorn from "acorn";
-import { CallExpression, ImportDeclaration, Literal } from "estree";
+import {
+  CallExpression,
+  ImportDeclaration,
+  Literal,
+  MemberExpression,
+} from "estree";
 /* tslint:disable */
 const walk = require("acorn/dist/walk");
 
@@ -12,6 +17,18 @@ type NewCallExpression = CallExpression & {
   callee: {
     type: "Import";
     name: string;
+  };
+} & {
+  callee: {
+    type: "MemberExpression";
+    object: {
+      type: string;
+      name: string;
+    };
+    property: {
+      type: string;
+      name: string;
+    };
   };
 };
 
@@ -38,9 +55,14 @@ export default function exportRequires(code: string) {
       },
       CallExpression(node: NewCallExpression) {
         if (
-          (node.callee.type === "Identifier" &&
+          /* require() */ (node.callee.type === "Identifier" &&
             node.callee.name === "require") ||
-          node.callee.type === "Import"
+          node.callee.type === "Import" ||
+          /* require.resolve */ (node.callee.type === "MemberExpression" &&
+            node.callee.object.name &&
+            node.callee.object.name === "require" &&
+            node.callee.property.name &&
+            node.callee.property.name === "resolve")
         ) {
           if (
             node.arguments.length === 1 &&
