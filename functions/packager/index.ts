@@ -1,6 +1,7 @@
 import { Callback, Context } from "aws-lambda";
 import { S3 } from "aws-sdk";
 
+import { fs } from "mz";
 import * as path from "path";
 import * as Raven from "raven";
 import * as rimraf from "rimraf";
@@ -52,6 +53,8 @@ async function getContents(
 require("lambda-git")();
 /* tslint:enable */
 
+let packaging = false;
+
 export async function call(event: any, context: Context, cb: Callback) {
   /** Immediate response for WarmUP plugin */
   if (event.source === "serverless-plugin-warmup") {
@@ -67,6 +70,30 @@ export async function call(event: any, context: Context, cb: Callback) {
     return;
   }
   const packagePath = path.join("/tmp", hash);
+
+  // Cleanup!
+  if (!packaging) {
+    console.log("Cleaning up /tmp");
+    try {
+      const folders = fs.readdirSync("/tmp");
+
+      folders.forEach(f => {
+        const p = path.join("/tmp/", f);
+        try {
+          if (fs.statSync(p).isDirectory() && p !== "/tmp/git") {
+            rimraf.sync(p);
+          }
+        } catch (e) {
+          console.error("Could not delete " + p + ", " + e.message);
+        }
+      });
+    } catch (e) {
+      console.error("Could not delete dependencies: " + e.message);
+      console.log("Continuing packaging...");
+    }
+  }
+
+  packaging = true;
   try {
     await installDependencies(dependency, packagePath);
 
@@ -154,6 +181,8 @@ export async function call(event: any, context: Context, cb: Callback) {
         cb(e);
       },
     );
+  } finally {
+    packaging = false;
   }
 }
 
