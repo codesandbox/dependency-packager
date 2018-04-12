@@ -71,7 +71,6 @@ functions:
 
   packager:
     handler: dist/packager/index.call
-    warmup: prod
     package:
       exclude:
         - dist/**
