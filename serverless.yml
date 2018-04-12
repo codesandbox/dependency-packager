@@ -1,6 +1,6 @@
 service:
   name: codesandbox-packager
-  runtime: nodejs6.10
+  runtime: nodejs8.10
 
 custom:
   s3Bucket: ${opt:stage}.packager.packages
@@ -10,8 +10,8 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs6.10
-  memorySize: 1536
+  runtime: nodejs8.10
+  memorySize: 3008
   timeout: 300
   region: ${self:custom.region}
 
@@ -50,7 +50,7 @@ functions:
   api:
     handler: dist/api/index.http
     warmup: prod
-    memorySize: 768 # optional, in MB, default is 1024
+    memorySize: 1024 # optional, in MB, default is 1024
     package:
       exclude:
         - dist/**
