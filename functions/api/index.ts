@@ -1,5 +1,6 @@
 import { Callback, Context } from "aws-lambda";
 import * as aws from "aws-sdk";
+import * as LRU from "lru-cache";
 import * as path from "path";
 
 import { VERSION } from "../config";
@@ -8,6 +9,11 @@ import getHash from "./utils/get-hash";
 
 import parseDependencies from "./dependencies/parse-dependencies";
 import mergeResults from "./merge-results";
+
+const errorCache: LRU.Cache<string, string> = LRU({
+  max: 1024,
+  maxAge: 1000 * 5,
+});
 
 export interface ILambdaResponse {
   contents: {
@@ -129,7 +135,7 @@ function getS3BundlePath(dependencies: IDependencies) {
 function generateDependency(
   name: string,
   version: string,
-): Promise<ILambdaResponse> {
+): Promise<{ error: string } | ILambdaResponse | null> {
   return new Promise((resolve, reject) => {
     lambda.invoke(
       {
@@ -153,6 +159,8 @@ function generateDependency(
 
         if (typeof data.Payload === "string") {
           resolve(JSON.parse(data.Payload));
+        } else {
+          resolve(null);
         }
       },
     );
@@ -206,40 +214,64 @@ export async function http(event: any, context: Context, cb: Callback) {
       return;
     }
 
-    Object.keys(dependencies).forEach(async depName => {
-      const depPath = `v${VERSION}/packages/${depName}/${
-        dependencies[depName]
-      }.json`;
-      const s3Object = await getFileFromS3(depPath);
+    await Promise.all(
+      Object.keys(dependencies).map(async depName => {
+        const depPath = `v${VERSION}/packages/${depName}/${
+          dependencies[depName]
+        }.json`;
+        const s3Object = await getFileFromS3(depPath);
 
-      if (s3Object && s3Object.Body != null) {
-        const result = JSON.parse(s3Object.Body.toString()) as ILambdaResponse;
+        if (s3Object && s3Object.Body != null) {
+          const result = JSON.parse(
+            s3Object.Body.toString(),
+          ) as ILambdaResponse;
 
-        receivedData.push(result);
-      } else {
-        const data = await generateDependency(depName, dependencies[depName]);
+          receivedData.push(result);
+        } else {
+          const key = depName + dependencies[depName];
 
-        if (!data.dependency) {
-          return cb(
-            new Error(
-              "Something went wrong wile packaging the dependency " +
+          const error = errorCache.get(key);
+
+          if (error) {
+            errorCache.del(key);
+
+            throw new Error(error);
+          }
+
+          const data = await generateDependency(depName, dependencies[depName]);
+
+          if (data === null) {
+            throw new Error(
+              "An unknown error happened while packaging the dependency " +
                 depName +
                 "@" +
                 dependencies[depName],
-            ),
-          );
+            );
+          } else if ("error" in data) {
+            // The request probably expired already, so we set a cache that can be returned when the next request comes in
+
+            const message =
+              "Something went wrong while packaging the dependency " +
+              depName +
+              "@" +
+              dependencies[depName] +
+              ": " +
+              data.error;
+            errorCache.set(key, message);
+            throw new Error(message);
+          } else {
+            receivedData.push(data);
+          }
         }
 
-        receivedData.push(data);
-      }
+        if (receivedData.length === Object.keys(dependencies).length) {
+          const body = JSON.stringify(mergeResults(receivedData));
 
-      if (receivedData.length === Object.keys(dependencies).length) {
-        const body = JSON.stringify(mergeResults(receivedData));
-
-        await saveFileToS3(bundlePath, body);
-        cb(undefined, getResponse(bundlePath));
-      }
-    });
+          await saveFileToS3(bundlePath, body);
+          cb(undefined, getResponse(bundlePath));
+        }
+      }),
+    );
   } catch (e) {
     console.error("ERROR ", e);
 

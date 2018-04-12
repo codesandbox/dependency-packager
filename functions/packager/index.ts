@@ -169,18 +169,15 @@ export async function call(event: any, context: Context, cb: Callback) {
       /* ignore */
     }
 
-    Raven.captureException(
-      e,
-      {
-        tags: {
-          hash,
-          dependency: `${dependency.name}@${dependency.version}`,
-        },
+    console.error("ERROR", e);
+
+    Raven.captureException(e, {
+      tags: {
+        hash,
+        dependency: `${dependency.name}@${dependency.version}`,
       },
-      () => {
-        cb(e);
-      },
-    );
+    });
+    cb(undefined, { error: e.message });
   } finally {
     packaging = false;
   }
