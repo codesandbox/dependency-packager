@@ -34,6 +34,60 @@ Object {
 }
 `;
 
+exports[`mergeResults can merge main dependency with depdeps 1`] = `
+Object {
+  "contents": Object {
+    "/node_modules/conflict1/1.2.6/lib/dap.js": "yes",
+    "/node_modules/conflict1/1.2.6/lib/index.js": "yes yes d",
+    "/node_modules/conflict1/lib/doep.js": "yes",
+    "/node_modules/conflict1/lib/index.js": "yes yes c",
+    "/node_modules/fbjs/lib/index.js": "yes yes c",
+    "/node_modules/react/lib/react.development.js": "yes",
+  },
+  "dependencies": Array [
+    Object {
+      "name": "conflict1",
+      "version": "3.2.5",
+    },
+    Object {
+      "name": "conflict2",
+      "version": "3.0.2",
+    },
+    Object {
+      "name": "conflict3",
+      "version": "3.0.2",
+    },
+  ],
+  "dependencyAliases": Object {
+    "conflict3": Object {
+      "conflict1": "conflict1/1.2.6",
+    },
+  },
+  "dependencyDependencies": Object {
+    "conflict1": Object {
+      "entries": Array [
+        "conflict1",
+      ],
+      "parents": Array [
+        "conflict2",
+      ],
+      "resolved": "3.2.5",
+      "semver": "1.2.6 - 3",
+    },
+    "conflict1/1.2.6": Object {
+      "entries": Array [
+        "conflict1",
+      ],
+      "parents": Array [
+        "conflict3",
+      ],
+      "resolved": "1.2.6",
+      "semver": "~1.2.6",
+    },
+  },
+}
+`;
+
 exports[`mergeResults can merge responses with absolute conflicts 1`] = `
 Object {
   "contents": Object {

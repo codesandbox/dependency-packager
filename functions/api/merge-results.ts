@@ -133,7 +133,10 @@ export default function mergeResults(responses: ILambdaResponse[]) {
         d => d.name === depDepName,
       );
 
-      if (rootDependency && rootDependency.version !== newDepDep.resolved) {
+      if (
+        rootDependency &&
+        !intersects(rootDependency.version, newDepDep.semver)
+      ) {
         // If a root dependency is in conflict with a child dependency, we always
         // go for the root dependency
         replaceDependencyInfo(r, depDepName, newDepDep);
