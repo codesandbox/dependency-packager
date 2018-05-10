@@ -72,8 +72,8 @@ Object {
       "parents": Array [
         "conflict",
       ],
-      "resolved": "12.0.1",
-      "semver": "^12.0.0",
+      "resolved": "13.0.1",
+      "semver": "^13.0.0",
     },
     "fbjs/12.0.0": Object {
       "entries": Array [
@@ -335,6 +335,40 @@ Object {
       ],
       "resolved": "12.0.0",
       "semver": "^12.0.0",
+    },
+  },
+}
+`;
+
+exports[`mergeResults can merge responses with range semvers 1`] = `
+Object {
+  "contents": Object {
+    "/node_modules/fbjs/lib/index.js": "yes yes c",
+    "/node_modules/react/lib/react.development.js": "yes",
+  },
+  "dependencies": Array [
+    Object {
+      "name": "conflict1",
+      "version": "3.0.1",
+    },
+    Object {
+      "name": "conflict2",
+      "version": "3.0.2",
+    },
+  ],
+  "dependencyAliases": Object {},
+  "dependencyDependencies": Object {
+    "fbjs": Object {
+      "entries": Array [
+        "fbjs",
+        "fbjs/lib/test.js",
+      ],
+      "parents": Array [
+        "conflict1",
+        "conflict2",
+      ],
+      "resolved": "3.2.6",
+      "semver": "1.2.6 - 3",
     },
   },
 }

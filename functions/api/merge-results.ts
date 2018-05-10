@@ -103,6 +103,14 @@ function replaceDependencyInfo(
   replacePaths(r.dependencyAliases, depDepName, newPath);
 }
 
+const intersects = (v1: string, v2: string) => {
+  try {
+    return semver.intersects(v1, v2);
+  } catch (e) {
+    return false;
+  }
+};
+
 export default function mergeResults(responses: ILambdaResponse[]) {
   // For consistency between requests
   const sortedResponses = responses.sort((a, b) =>
@@ -140,9 +148,7 @@ export default function mergeResults(responses: ILambdaResponse[]) {
           exDepDep.entries = uniq([...exDepDep.entries, ...newDepDep.entries]);
         } else {
           if (
-            semver.valid(exDepDep.semver) &&
-            semver.valid(newDepDep.semver) &&
-            semver.intersects(exDepDep.semver, newDepDep.semver) &&
+            intersects(exDepDep.semver, newDepDep.semver) &&
             isEqual(exDepDep.entries, newDepDep.entries)
           ) {
             const replacingDepDep = semver.gt(

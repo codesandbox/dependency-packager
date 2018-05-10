@@ -60,8 +60,8 @@ describe("mergeResults", () => {
         fbjs: {
           entries: ["fbjs"],
           parents: ["conflict"],
-          resolved: "12.0.1",
-          semver: "^12.0.0",
+          resolved: "13.0.1",
+          semver: "^13.0.0",
         },
       },
       peerDependencies: {},
@@ -238,6 +238,52 @@ describe("mergeResults", () => {
     };
 
     const merge = mergeResults([react, reactDom, conflict1, conflict2]);
+
+    expect(merge).toMatchSnapshot();
+  });
+
+  it("can merge responses with range semvers", () => {
+    const conflict1: ILambdaResponse = {
+      contents: {
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes c",
+      },
+      dependency: {
+        name: "conflict1",
+        version: "3.0.1",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict1"],
+          resolved: "3.2.5",
+          semver: "1.2.6 - 3",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const conflict2: ILambdaResponse = {
+      contents: {
+        "/node_modules/react/lib/react.development.js": "yes",
+        "/node_modules/fbjs/lib/index.js": "yes yes c",
+      },
+      dependency: {
+        name: "conflict2",
+        version: "3.0.2",
+      },
+      dependencyDependencies: {
+        fbjs: {
+          entries: ["fbjs", "fbjs/lib/test.js"],
+          parents: ["conflict2"],
+          resolved: "3.2.6",
+          semver: "1.2.6 - 3",
+        },
+      },
+      peerDependencies: {},
+    };
+
+    const merge = mergeResults([conflict1, conflict2]);
 
     expect(merge).toMatchSnapshot();
   });
