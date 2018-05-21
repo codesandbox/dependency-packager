@@ -16,6 +16,18 @@ const readFixture = (path: string) => {
   return json;
 };
 
+const downloadFixture = (dep: string, version: string) =>
+  require("node-fetch")
+    .default(
+      `https://s3-eu-west-1.amazonaws.com/prod.packager.packages/v1/packages/${dep}/${version}.json`,
+    )
+    .then(x => x.json())
+    .then(json => {
+      const r = json;
+      r.contents = {};
+      return r;
+    });
+
 describe("mergeResults", () => {
   const react: ILambdaResponse = {
     contents: {
@@ -368,6 +380,30 @@ describe("mergeResults", () => {
     };
 
     const merge = mergeResults([conflict1, conflict2, conflict3]);
+
+    expect(merge).toMatchSnapshot();
+  });
+
+  it.only("can merge web3", async () => {
+    const web3 = await downloadFixture("web3", "0.20.6");
+    const web3ProviderEngine = await downloadFixture(
+      "web3-provider-engine",
+      "14.0.5",
+    );
+
+    web3.contents = {
+      "/node_modules/web3/package.json": {
+        contents: "{}",
+      },
+    };
+
+    web3ProviderEngine.contents = {
+      "/node_modules/web3-provider-engine/package.json": {
+        contents: `{ "title": "test" }`,
+      },
+    };
+
+    const merge = mergeResults([web3, web3ProviderEngine]);
 
     expect(merge).toMatchSnapshot();
   });
