@@ -4,6 +4,8 @@ import { basename, dirname, join } from "path";
 import { IPackage } from "./find-package-infos";
 
 const BLACKLISTED_DIRS = [
+  "_esm5",
+  "_esm2015",
   "demo",
   "docs",
   "benchmark",
