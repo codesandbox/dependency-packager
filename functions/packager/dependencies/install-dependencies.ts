@@ -13,7 +13,9 @@ export default function installDependencies(
         "yarn",
         "lib",
         "cli",
-      )} add ${dependency.name}@${dependency.version} --no-lockfile --ignore-scripts --non-interactive --no-bin-links --no-lockfile --ignore-engines`,
+      )} add ${dependency.name}@${
+        dependency.version
+      } --no-lockfile --non-interactive --no-bin-links --ignore-engines`,
       (err, stdout, stderr) => {
         if (err) {
           reject(
