@@ -16,7 +16,6 @@ const BLACKLISTED_DIRS = [
   "scripts",
   "tests",
   "test",
-  "testing",
   "umd",
   "min",
   "node_modules",
@@ -70,20 +69,63 @@ const ALLOWED_EXTENSIONS = [
   "html",
 ];
 
-function isValidFile(filePath: string) {
-  if (basename(filePath).startsWith(".")) {
+function isValidFile(packagePath: string, packageInfo: IPackage) {
+  let moduleDir = null;
+  let es2015Dir = null;
+
+  // We don't want to include es2015 and modules folders if we have a main file.
+  // For example, if you have this file structure:
+
+  /*
+  - es2015
+    - index.js
+  - es5
+    - index.js
+  - index.js (main)
+  */
+
+  // We only want to include the index.js and not those subdirs. An example of this
+  // is rxjs.
+  if (packageInfo.module) {
+    moduleDir = dirname(join(packagePath, packageInfo.module))
+      .replace(packagePath, "")
+      .slice(1);
+  }
+
+  if (packageInfo.es2015) {
+    es2015Dir = dirname(join(packagePath, packageInfo.es2015))
+      .replace(packagePath, "")
+      .slice(1);
+  }
+
+  const blackListedDirs = [...BLACKLISTED_DIRS, moduleDir, es2015Dir].filter(
+    Boolean,
+  ) as string[];
+
+  return (filePath: string) => {
+    const relDirName = filePath.replace(packagePath, "").slice(1);
+    if (basename(filePath).startsWith(".")) {
+      return false;
+    }
+
+    if (
+      blackListedDirs.some(dir => {
+        return relDirName.startsWith(dir);
+      })
+    ) {
+      return false;
+    }
+
+    if (DISALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+      return false;
+    }
+
+    if (ALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+      return true;
+    }
+
     return false;
-  }
-
-  if (DISALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
-    return false;
-  }
-
-  if (ALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
-    return true;
-  }
-
-  return false;
+  };
 }
 
 const FALLBACK_DIRS = ["dist", "lib", "build"];
@@ -100,21 +142,21 @@ export default async function resolveRequiredFiles(
   let entryDir;
 
   if (!main) {
-    entryDir = FALLBACK_DIRS.map(d => join(packagePath, d)).find(
-      dir => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
-    );
-  } else {
-    entryDir = join(packagePath, dirname(main));
-  }
-
-  if (!entryDir) {
     const indexFileExists = fs.existsSync(join(packagePath, "index.js"));
     if (indexFileExists) {
       main = "index.js";
       entryDir = packagePath;
     } else {
-      return [];
+      entryDir = FALLBACK_DIRS.map(d => join(packagePath, d)).find(
+        dir => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
+      );
     }
+  } else {
+    entryDir = join(packagePath, dirname(main));
+  }
+
+  if (!entryDir) {
+    return [];
   }
 
   const browser =
@@ -135,8 +177,9 @@ export default async function resolveRequiredFiles(
     };
   }, {});
 
+  const isValidFileTest = isValidFile(entryDir, packageInfo);
   const files: string[] = (await getFilePathsInDirectory(entryDir))
-    .filter(isValidFile)
+    .filter(isValidFileTest)
     .map(path => {
       if (typeof browserAliases === "object") {
         if (browserAliases[path] === false) {

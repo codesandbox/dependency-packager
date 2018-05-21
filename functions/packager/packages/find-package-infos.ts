@@ -10,6 +10,7 @@ export interface IPackage {
   browser?: string | { [path: string]: string | false };
   unpkg?: string;
   module?: string;
+  es2015?: string;
   version: string;
   dependencies?: {
     [depName: string]: string;

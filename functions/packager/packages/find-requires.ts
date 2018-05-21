@@ -7,6 +7,7 @@ import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
 
 import * as browserResolve from "browser-resolve";
+import { getReasonFiles, isReason } from "./reason-downloader";
 
 interface IAliases {
   [alias: string]: string | false | null;
@@ -115,6 +116,10 @@ export default async function findRequires(
   );
 
   let files: IFileData = {};
+
+  if (isReason(packageName, rootPath)) {
+    files = await getReasonFiles(rootPath, packageInfos);
+  }
 
   for (const file of requiredFiles) {
     if (file) {

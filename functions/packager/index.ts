@@ -24,6 +24,26 @@ Raven.config(env.SENTRY_URL).install();
 
 const s3 = new S3();
 
+/**
+ * Remove a file from the content
+ *
+ * @param {IFileData} data
+ * @param {string} deletePath
+ */
+function deleteHardcodedRequires(data: IFileData, deletePath: string) {
+  if (data[deletePath]) {
+    Object.keys(data).forEach(p => {
+      const requires = data[p].requires;
+      if (requires) {
+        data[p].requires = requires.filter(
+          x => path.join(path.dirname(p), x) !== deletePath,
+        );
+      }
+    });
+    delete data[deletePath];
+  }
+}
+
 async function getContents(
   dependency: any,
   packagePath: string,
@@ -43,6 +63,16 @@ async function getContents(
       },
     }),
     {},
+  );
+
+  // Hardcoded deletion of some modules that are not used but added by accident
+  deleteHardcodedRequires(
+    contents,
+    "/node_modules/react/cjs/react.production.min.js",
+  );
+  deleteHardcodedRequires(
+    contents,
+    "/node_modules/react-dom/cjs/react-dom.production.min.js",
   );
 
   return { ...contents, ...packageJSONFiles };
