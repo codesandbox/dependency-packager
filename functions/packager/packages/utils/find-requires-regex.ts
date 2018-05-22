@@ -23,9 +23,7 @@ export function getRequireStatements(code: string) {
               results.push(match[1]);
             }
           } else if (match[2]) {
-            if (!results.find(r => r === match[2])) {
-              results.push(match[2]);
-            }
+            /* Don't include dynamic dependencies */
           }
         }
       });
