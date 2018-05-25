@@ -11,8 +11,6 @@ const walk = require("acorn/dist/walk");
 require("acorn-dynamic-import/lib/inject").default(acorn);
 /* tslint:enable */
 
-import * as regexRequire from "./find-requires-regex";
-
 const ECMA_VERSION = 2017;
 
 type NewCallExpression = CallExpression & {
@@ -35,15 +33,6 @@ type NewCallExpression = CallExpression & {
 };
 
 export default function exportRequires(code: string) {
-  // If there are no `import/export` statements we can just use a regex to save time
-  try {
-    if (regexRequire.isValidForRegex(code)) {
-      return regexRequire.getRequireStatements(code);
-    }
-  } catch (e) {
-    /* We ignore this, so we fallback to AST logic */
-  }
-
   const ast = acorn.parse(code, {
     ecmaVersion: ECMA_VERSION,
     locations: true,
