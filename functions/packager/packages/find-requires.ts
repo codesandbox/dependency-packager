@@ -128,13 +128,24 @@ export default async function findRequires(
     }
   }
 
-  const relativeFiles = Object.keys(files).reduce(
-    (total, next) => ({
-      ...total,
-      [next.replace(rootPath, "")]: files[next],
-    }),
-    {},
-  );
+  const sizeMB = JSON.stringify(files).length / 1024 / 1024;
+
+  // If the response is bigger than 8 mb(!) and there is no main file we just
+  // include the default included files. Let the client decide which other files
+  // to download.
+  const relativeFiles =
+    sizeMB > 8 &&
+    !packageInfos[packageJSONPath].main &&
+    !packageInfos[packageJSONPath].module &&
+    !packageInfos[packageJSONPath].unpkg
+      ? {}
+      : Object.keys(files).reduce(
+          (total, next) => ({
+            ...total,
+            [next.replace(rootPath, "")]: files[next],
+          }),
+          {},
+        );
 
   return relativeFiles;
 }
