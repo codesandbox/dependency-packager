@@ -1,4 +1,5 @@
 import { exec } from "child_process";
+import * as npa from "npm-package-arg";
 import { join } from "path";
 
 export default function installDependencies(
@@ -6,6 +7,10 @@ export default function installDependencies(
   packagePath: string,
 ) {
   return new Promise((resolve, reject) => {
+    const depString = `${dependency.name}@${dependency.version}`;
+
+    const spec = npa(depString);
+
     exec(
       `mkdir -p ${packagePath} && cd ${packagePath} && HOME=/tmp node ${join(
         __dirname,
@@ -13,9 +18,9 @@ export default function installDependencies(
         "yarn",
         "lib",
         "cli",
-      )} add ${dependency.name}@${
-        dependency.version
-      } --no-lockfile --non-interactive --no-bin-links --ignore-engines`,
+      )} add ${depString} ${
+        spec.type === "git" ? "" : "--ignore-scripts"
+      } --no-lockfile --non-interactive --no-bin-links --ignore-engines --skip-integrity-check`,
       (err, stdout, stderr) => {
         if (err) {
           reject(
