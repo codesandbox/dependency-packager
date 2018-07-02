@@ -3,7 +3,7 @@ service:
   runtime: nodejs8.10
 
 custom:
-  s3Bucket: ${opt:stage}.packager.packages
+  s3Bucket: ${opt:stage}.${opt:s3prefix, 'packager'}.packages
   region: eu-west-1
   serverless-offline:
     port: 5600
