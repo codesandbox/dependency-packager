@@ -1,12 +1,7 @@
 import * as acorn from "acorn";
-import {
-  CallExpression,
-  ImportDeclaration,
-  Literal,
-  MemberExpression,
-} from "estree";
-/* tslint:disable */
-const walk = require("acorn/dist/walk");
+import { CallExpression, ImportDeclaration, Literal } from "estree";
+import * as Babel from "babel-core";
+import { babylonAstDependencies } from "./get-deps";
 
 require("acorn-dynamic-import/lib/inject").default(acorn);
 /* tslint:enable */
@@ -33,56 +28,24 @@ type NewCallExpression = CallExpression & {
 };
 
 export default function exportRequires(code: string) {
-  const ast = acorn.parse(code, {
-    ecmaVersion: ECMA_VERSION,
-    locations: true,
-    plugins: {
-      dynamicImport: true,
-    },
-    ranges: true,
-    sourceType: "module",
+  const plugins: any = [
+    "transform-node-env-inline",
+    "minify-dead-code-elimination",
+  ];
+  const presets = ["stage-0"];
+
+  process.env.NODE_ENV = "development";
+  let { ast } = Babel.transform(code, {
+    plugins,
+    presets,
   });
+  process.env.NODE_ENV = "production";
 
   const requires: string[] = [];
 
-  walk.simple(
-    ast,
-    {
-      ImportDeclaration(node: ImportDeclaration) {
-        if (typeof node.source.value === "string") {
-          requires.push(node.source.value);
-        }
-      },
-      CallExpression(node: NewCallExpression) {
-        if (
-          /* require() */ (node.callee.type === "Identifier" &&
-            node.callee.name === "require") ||
-          node.callee.type === "Import" ||
-          /* require.resolve */ (node.callee.type === "MemberExpression" &&
-            node.callee.object.name &&
-            node.callee.object.name === "require" &&
-            node.callee.property.name &&
-            node.callee.property.name === "resolve")
-        ) {
-          if (
-            node.arguments.length === 1 &&
-            node.arguments[0].type === "Literal"
-          ) {
-            const literalArgument = node.arguments[0] as Literal;
-            if (typeof literalArgument.value === "string") {
-              requires.push(literalArgument.value);
-            }
-          }
-        }
-      },
-    },
-    {
-      ...walk.base,
-      Import(node: any, st: any, c: any) {
-        // Do nothing
-      },
-    },
-  );
+  const deps = babylonAstDependencies(ast);
+
+  deps.forEach((dep: any) => requires.push(dep.source));
 
   return requires;
 }

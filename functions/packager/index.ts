@@ -65,15 +65,15 @@ async function getContents(
     {},
   );
 
-  // Hardcoded deletion of some modules that are not used but added by accident
-  deleteHardcodedRequires(
-    contents,
-    "/node_modules/react/cjs/react.production.min.js",
-  );
-  deleteHardcodedRequires(
-    contents,
-    "/node_modules/react-dom/cjs/react-dom.production.min.js",
-  );
+  // // Hardcoded deletion of some modules that are not used but added by accident
+  // deleteHardcodedRequires(
+  //   contents,
+  //   "/node_modules/react/cjs/react.production.min.js",
+  // );
+  // deleteHardcodedRequires(
+  //   contents,
+  //   "/node_modules/react-dom/cjs/react-dom.production.min.js",
+  // );
 
   return { ...contents, ...packageJSONFiles };
 }
