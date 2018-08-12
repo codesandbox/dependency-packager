@@ -88,13 +88,13 @@ function isValidFile(packagePath: string, packageInfo: IPackage) {
 
   // We only want to include the index.js and not those subdirs. An example of this
   // is rxjs.
-  if (packageInfo.module) {
+  if (typeof packageInfo.module === "string") {
     moduleDir = dirname(join(packagePath, packageInfo.module))
       .replace(packagePath, "")
       .slice(1);
   }
 
-  if (packageInfo.es2015) {
+  if (typeof packageInfo.es2015 === "string") {
     es2015Dir = dirname(join(packagePath, packageInfo.es2015))
       .replace(packagePath, "")
       .slice(1);

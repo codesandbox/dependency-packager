@@ -385,11 +385,16 @@ describe("mergeResults", () => {
   });
 
   it.only("can merge web3", async () => {
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
     const web3 = await downloadFixture("web3", "0.20.6");
     const web3ProviderEngine = await downloadFixture(
       "web3-provider-engine",
       "14.0.5",
     );
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
 
     web3.contents = {
       "/node_modules/web3/package.json": {
