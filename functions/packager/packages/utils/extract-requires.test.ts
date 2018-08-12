@@ -17,6 +17,18 @@ describe("extractRequires", () => {
     expect(extractRequires(code)).toEqual(["react"]);
   });
 
+  it("can eliminate requires statements", () => {
+    const code = `
+    if (process.env.NODE_ENV === 'development') {
+      module.exports = require('react');
+    } else {
+      module.exports = require('blaat');
+    }
+    `;
+
+    expect(extractRequires(code)).toEqual(["react"]);
+  });
+
   it("can find dynamic require statements", () => {
     const code = `
     const react = import('react');
@@ -50,5 +62,13 @@ describe("extractRequires", () => {
     `;
 
     expect(extractRequires(code)).toEqual(["react-dom"]);
+  });
+
+  it("can find re-exports", () => {
+    const code = `
+      export react from './react';
+    `;
+
+    expect(extractRequires(code)).toEqual(["./react"]);
   });
 });

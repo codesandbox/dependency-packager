@@ -1,5 +1,5 @@
 import { fs } from "mz";
-import { dirname, join } from "path";
+import { join } from "path";
 
 import { IPackage } from "./find-package-infos";
 import resolveRequiredFiles from "./resolve-required-files";
@@ -21,9 +21,6 @@ export interface IFileData {
 }
 
 function rewritePath(path: string, currentPath: string, packagePath: string) {
-  const relativePath = nodeResolvePath(join(dirname(currentPath), path));
-  const isDependency = /^(\w|@\w)/.test(path);
-
   return browserResolve.sync(path, { filename: currentPath });
 }
 
@@ -50,6 +47,7 @@ function buildRequireObject(
   try {
     extractedRequires = extractRequires(fileData.content);
   } catch (e) {
+    console.error(e);
     return existingContents;
   }
 
@@ -60,7 +58,7 @@ function buildRequireObject(
     try {
       newPath = rewritePath(requirePath, filePath, packagePath);
     } catch (e) {
-      console.warn(`Couldn't find ${requirePath}`);
+      // console.warn(`Couldn't find ${requirePath}`);
       return;
     }
 
