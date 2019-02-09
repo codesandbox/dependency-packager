@@ -24,7 +24,6 @@ const downloadFixture = (dep: string, version: string) =>
     .then(x => x.json())
     .then(json => {
       const r = json;
-      r.contents = {};
       return r;
     });
 
@@ -384,7 +383,7 @@ describe("mergeResults", () => {
     expect(merge).toMatchSnapshot();
   });
 
-  it.only("can merge web3", async () => {
+  it("can merge web3", async () => {
     const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
@@ -411,5 +410,25 @@ describe("mergeResults", () => {
     const merge = mergeResults([web3, web3ProviderEngine]);
 
     expect(merge).toMatchSnapshot();
+  });
+
+  it.only("uses the old content if the new response uses an older semver", async () => {
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
+    const material = await downloadFixture("@material-ui/core", "3.9.2");
+    const styledComponents = await downloadFixture(
+      "styled-components",
+      "4.1.3",
+    );
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+
+    const merge = mergeResults([material, styledComponents]);
+
+    expect(
+      JSON.parse(merge.contents["/node_modules/react-is/package.json"].content)
+        .version,
+    ).toBe("16.7.0");
   });
 });

@@ -17,7 +17,7 @@ const errorCache: LRU.Cache<string, string> = LRU({
 
 export interface ILambdaResponse {
   contents: {
-    [path: string]: string;
+    [path: string]: { content: string };
   };
   dependency: {
     name: string;

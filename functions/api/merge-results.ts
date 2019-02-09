@@ -12,8 +12,12 @@ interface IDepDepInfo {
   entries: string[];
 }
 
+interface IContents {
+  [path: string]: { content: string };
+}
+
 interface IResponse {
-  contents: { [path: string]: string };
+  contents: IContents;
   dependencies: Array<{ name: string; version: string }>;
   dependencyAliases: { [dep: string]: { [dep: string]: string } };
   dependencyDependencies: {
@@ -64,6 +68,52 @@ function replacePaths(
       delete paths[al];
     }
   });
+}
+
+function replaceContents(
+  response: IResponse,
+  newResponse: ILambdaResponse,
+  dependencyName: string,
+  handled: string[] = [],
+) {
+  const contents = response.contents;
+  const newContents = newResponse.contents;
+
+  // This means that the existing content already has the latest version of this dependency,
+  // at the end of the loop we overwrite existing content with the new content. So we now overwrite
+  // the new content with the files of the newer version in the old response.
+  const replacedContents: IContents = {};
+  Object.keys(contents).forEach(p => {
+    if (p.startsWith(`/node_modules/${dependencyName}`)) {
+      replacedContents[p] = contents[p];
+    }
+  });
+
+  Object.keys(newContents).forEach(p => {
+    if (!p.startsWith(`/node_modules/${dependencyName}`)) {
+      replacedContents[p] = newContents[p];
+    }
+  });
+
+  newResponse.contents = replacedContents;
+
+  // Now do the same for all transient dependencies, mutate the existing contents
+  const transientDependencies = Object.keys(
+    response.dependencyDependencies,
+  ).filter(
+    dep =>
+      handled.indexOf(dep) === -1 &&
+      response.dependencyDependencies[dep].parents.indexOf(dependencyName) > -1,
+  );
+
+  const nowHandled = [...handled, dependencyName];
+
+  transientDependencies.forEach(dep => {
+    replaceContents(response, newResponse, dep, nowHandled);
+    nowHandled.push(dep);
+  });
+
+  return newResponse;
 }
 
 function replaceDependencyInfo(
@@ -167,6 +217,14 @@ export default function mergeResults(responses: ILambdaResponse[]) {
               ...exDepDep.parents,
               ...newDepDep.parents,
             ]);
+
+            if (replacingDepDep === exDepDep) {
+              // This means that the existing content already has the latest version of this dependency,
+              // at the end of the loop we overwrite existing content with the new content. So we now overwrite
+              // the new content with the files of the newer version in the old response.
+
+              r.contents = replaceContents(response, r, depDepName).contents;
+            }
           } else {
             replaceDependencyInfo(r, depDepName, newDepDep);
             // Start from the beginning, to make sure everything is correct
