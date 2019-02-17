@@ -3664,3 +3664,313 @@ Object {
   },
 }
 `;
+
+exports[`mergeResults doesn't duplicate dependency without reason 1`] = `
+Object {
+  "contents": Object {},
+  "dependencies": Array [
+    Object {
+      "name": "react-router",
+      "version": "4.4.0-beta.6",
+    },
+    Object {
+      "name": "react-router-dom",
+      "version": "4.4.0-beta.6",
+    },
+  ],
+  "dependencyAliases": Object {},
+  "dependencyDependencies": Object {
+    "@babel/runtime": Object {
+      "entries": Array [],
+      "parents": Array [
+        "react-router",
+        "history",
+        "react-router-dom",
+      ],
+      "resolved": "7.1.2",
+      "semver": "^7.1.2",
+    },
+    "asap": Object {
+      "entries": Array [],
+      "parents": Array [
+        "promise",
+      ],
+      "resolved": "2.0.6",
+      "semver": "~2.0.3",
+    },
+    "core-js": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+      ],
+      "resolved": "1.2.7",
+      "semver": "^1.0.0",
+    },
+    "create-react-context": Object {
+      "entries": Array [
+        "create-react-context",
+      ],
+      "parents": Array [
+        "react-router",
+      ],
+      "resolved": "0.2.3",
+      "semver": "^0.2.2",
+    },
+    "encoding": Object {
+      "entries": Array [],
+      "parents": Array [
+        "node-fetch",
+      ],
+      "resolved": "0.1.12",
+      "semver": "^0.1.11",
+    },
+    "fbjs": Object {
+      "entries": Array [
+        "fbjs/lib/warning",
+      ],
+      "parents": Array [
+        "create-react-context",
+      ],
+      "resolved": "0.8.17",
+      "semver": "^0.8.0",
+    },
+    "gud": Object {
+      "entries": Array [
+        "gud",
+      ],
+      "parents": Array [
+        "create-react-context",
+      ],
+      "resolved": "1.0.0",
+      "semver": "^1.0.0",
+    },
+    "history": Object {
+      "entries": Array [
+        "history",
+      ],
+      "parents": Array [
+        "react-router",
+        "react-router-dom",
+      ],
+      "resolved": "4.8.0-beta.0",
+      "semver": "^4.8.0-beta.0",
+    },
+    "hoist-non-react-statics": Object {
+      "entries": Array [
+        "hoist-non-react-statics",
+      ],
+      "parents": Array [
+        "react-router",
+      ],
+      "resolved": "2.5.5",
+      "semver": "^2.5.0",
+    },
+    "iconv-lite": Object {
+      "entries": Array [],
+      "parents": Array [
+        "encoding",
+      ],
+      "resolved": "0.4.24",
+      "semver": "~0.4.13",
+    },
+    "is-stream": Object {
+      "entries": Array [],
+      "parents": Array [
+        "node-fetch",
+      ],
+      "resolved": "1.1.0",
+      "semver": "^1.0.1",
+    },
+    "isarray": Object {
+      "entries": Array [
+        "isarray",
+      ],
+      "parents": Array [
+        "path-to-regexp",
+      ],
+      "resolved": "0.0.1",
+      "semver": "0.0.1",
+    },
+    "isomorphic-fetch": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+      ],
+      "resolved": "2.2.1",
+      "semver": "^2.1.1",
+    },
+    "js-tokens": Object {
+      "entries": Array [],
+      "parents": Array [
+        "loose-envify",
+      ],
+      "resolved": "4.0.0",
+      "semver": "^3.0.0 || ^4.0.0",
+    },
+    "loose-envify": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+        "history",
+        "react-router",
+        "prop-types",
+        "react-router-dom",
+      ],
+      "resolved": "1.4.0",
+      "semver": "^1.0.0",
+    },
+    "node-fetch": Object {
+      "entries": Array [],
+      "parents": Array [
+        "isomorphic-fetch",
+      ],
+      "resolved": "1.7.3",
+      "semver": "^1.0.1",
+    },
+    "object-assign": Object {
+      "entries": Array [
+        "object-assign",
+      ],
+      "parents": Array [
+        "fbjs",
+        "prop-types",
+      ],
+      "resolved": "4.1.1",
+      "semver": "^4.1.0",
+    },
+    "path-to-regexp": Object {
+      "entries": Array [
+        "path-to-regexp",
+      ],
+      "parents": Array [
+        "react-router",
+      ],
+      "resolved": "1.7.0",
+      "semver": "^1.7.0",
+    },
+    "promise": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+      ],
+      "resolved": "7.3.1",
+      "semver": "^7.1.1",
+    },
+    "prop-types": Object {
+      "entries": Array [
+        "prop-types",
+      ],
+      "parents": Array [
+        "react-router",
+        "react-router-dom",
+      ],
+      "resolved": "15.6.2",
+      "semver": "^15.6.2",
+    },
+    "react-is": Object {
+      "entries": Array [
+        "react-is",
+      ],
+      "parents": Array [
+        "react-router",
+      ],
+      "resolved": "16.6.0",
+      "semver": "^16.5.2",
+    },
+    "react-router": Object {
+      "entries": Array [
+        "react-router",
+      ],
+      "parents": Array [
+        "react-router-dom",
+      ],
+      "resolved": "4.4.0-beta.6",
+      "semver": "^4.4.0-beta.6",
+    },
+    "regenerator-runtime": Object {
+      "entries": Array [],
+      "parents": Array [
+        "@babel/runtime",
+      ],
+      "resolved": "0.12.1",
+      "semver": "^0.12.0",
+    },
+    "resolve-pathname": Object {
+      "entries": Array [
+        "resolve-pathname",
+      ],
+      "parents": Array [
+        "history",
+      ],
+      "resolved": "2.2.0",
+      "semver": "^2.2.0",
+    },
+    "safer-buffer": Object {
+      "entries": Array [],
+      "parents": Array [
+        "iconv-lite",
+      ],
+      "resolved": "2.1.2",
+      "semver": ">= 2.1.2 < 3",
+    },
+    "setimmediate": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+      ],
+      "resolved": "1.0.5",
+      "semver": "^1.0.5",
+    },
+    "tiny-invariant": Object {
+      "entries": Array [
+        "tiny-invariant",
+      ],
+      "parents": Array [
+        "history",
+        "react-router",
+        "react-router-dom",
+      ],
+      "resolved": "1.0.2",
+      "semver": "^1.0.2",
+    },
+    "tiny-warning": Object {
+      "entries": Array [
+        "tiny-warning",
+      ],
+      "parents": Array [
+        "history",
+        "react-router",
+        "react-router-dom",
+      ],
+      "resolved": "1.0.0",
+      "semver": "^1.0.0",
+    },
+    "ua-parser-js": Object {
+      "entries": Array [],
+      "parents": Array [
+        "fbjs",
+      ],
+      "resolved": "0.7.19",
+      "semver": "^0.7.18",
+    },
+    "value-equal": Object {
+      "entries": Array [
+        "value-equal",
+      ],
+      "parents": Array [
+        "history",
+      ],
+      "resolved": "0.4.0",
+      "semver": "^0.4.0",
+    },
+    "whatwg-fetch": Object {
+      "entries": Array [],
+      "parents": Array [
+        "isomorphic-fetch",
+      ],
+      "resolved": "3.0.0",
+      "semver": ">=0.10.0",
+    },
+  },
+}
+`;

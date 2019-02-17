@@ -412,7 +412,7 @@ describe("mergeResults", () => {
     expect(merge).toMatchSnapshot();
   });
 
-  it.only("uses the old content if the new response uses an older semver", async () => {
+  it("uses the old content if the new response uses an older semver", async () => {
     const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
@@ -430,5 +430,24 @@ describe("mergeResults", () => {
       JSON.parse(merge.contents["/node_modules/react-is/package.json"].content)
         .version,
     ).toBe("16.7.0");
+  });
+
+  it("doesn't duplicate dependency without reason", async () => {
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
+    const reactRouter = await downloadFixture("react-router", "4.4.0-beta.6");
+    const reactRouterDom = await downloadFixture(
+      "react-router-dom",
+      "4.4.0-beta.6",
+    );
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+
+    const merge = mergeResults([reactRouter, reactRouterDom]);
+    merge.contents = {};
+
+    expect(merge.dependencyAliases).toEqual({});
+    expect(merge).toMatchSnapshot();
   });
 });

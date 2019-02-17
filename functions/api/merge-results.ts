@@ -186,6 +186,7 @@ export default function mergeResults(responses: ILambdaResponse[]) {
       if (
         rootDependency &&
         !intersects(rootDependency.version, newDepDep.semver) &&
+        rootDependency.version !== newDepDep.resolved && // Sometimes the intersection returns a bad response (eg. for ^beta-4.4.4, so we also just check if resolved is same)
         rootDependency.name !== r.dependency.name // and this dependency doesn't require an older version of itself
       ) {
         // If a root dependency is in conflict with a child dependency, we always
