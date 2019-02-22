@@ -450,4 +450,24 @@ describe("mergeResults", () => {
     expect(merge.dependencyAliases).toEqual({});
     expect(merge).toMatchSnapshot();
   });
+
+  it("can replace contents and add new transient dependencies", async () => {
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
+    const deps = [
+      await downloadFixture("aurelia-framework", "1.3.0"),
+      await downloadFixture("aurelia-logging-console", "1.0.0"),
+    ];
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+
+    const merge = mergeResults(deps);
+
+    expect(
+      merge.contents[
+        "/node_modules/aurelia-logging-console/dist/commonjs/aurelia-logging-console.js"
+      ],
+    ).not.toBeFalsy();
+  });
 });

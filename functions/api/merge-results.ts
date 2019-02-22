@@ -90,7 +90,7 @@ function replaceContents(
   });
 
   Object.keys(newContents).forEach(p => {
-    if (!p.startsWith(`/node_modules/${dependencyName}`)) {
+    if (!p.startsWith(`/node_modules/${dependencyName}`) || !contents[p]) {
       replacedContents[p] = newContents[p];
     }
   });
