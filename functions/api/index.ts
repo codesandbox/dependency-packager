@@ -207,8 +207,6 @@ export async function http(event: any, context: Context, cb: Callback) {
     const bundlePath = getS3BundlePath(dependencies);
     const bundle = await getFileFromS3(bundlePath);
 
-    const response = JSON.stringify({ url: bundlePath });
-
     if (bundle && bundle.Body) {
       cb(undefined, getResponse(bundlePath));
       return;
