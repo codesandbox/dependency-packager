@@ -14,7 +14,6 @@
   "dependencies": {
     "acorn": "^5.1.2",
     "acorn-dynamic-import": "^2.0.2",
-    "aws-lambda": "^0.1.2",
     "browser-resolve": "^1.11.2",
     "json5": "^1.0.1",
     "lambda-git": "^0.1.1",
