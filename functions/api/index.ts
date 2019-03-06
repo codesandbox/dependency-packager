@@ -139,7 +139,7 @@ function generateDependency(
   return new Promise((resolve, reject) => {
     lambda.invoke(
       {
-        FunctionName: `codesandbox-packager-${
+        FunctionName: `codesandbox-packager-v2-${
           process.env.SERVERLESS_STAGE
         }-packager`,
         Payload: JSON.stringify({
