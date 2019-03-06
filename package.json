@@ -46,6 +46,7 @@
     "@types/rimraf": "^2.0.2",
     "@types/semver": "^5.4.0",
     "@types/string-hash": "^1.1.1",
+    "aws-sdk": "^2.415.0",
     "eslint": "^4.7.2",
     "eslint-config-prettier": "^2.6.0",
     "express": "^4.16.1",
