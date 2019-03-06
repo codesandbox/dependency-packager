@@ -27,11 +27,13 @@ async function getFilePathsInDirectory(path: string): Promise<string[]> {
   const entries = await fs.readdir(path);
 
   const entriesWithMetadata = await Promise.all(
-    entries.map(fPath => join(path, fPath)).map(async entry => {
-      const meta = await fs.lstat(entry);
+    entries
+      .map(fPath => join(path, fPath))
+      .map(async entry => {
+        const meta = await fs.lstat(entry);
 
-      return { entry, isDirectory: meta.isDirectory() };
-    }),
+        return { entry, isDirectory: meta.isDirectory() };
+      }),
   );
 
   let files = entriesWithMetadata.filter(x => !x.isDirectory).map(x => x.entry);
@@ -180,21 +182,25 @@ export default async function resolveRequiredFiles(
   }, {});
 
   const isValidFileTest = isValidFile(entryDir, packageInfo);
-  const files: string[] = (await getFilePathsInDirectory(entryDir))
-    .filter(isValidFileTest)
-    .map(path => {
-      if (typeof browserAliases === "object") {
-        if (browserAliases[path] === false) {
-          return null;
-        }
+  // I removed this optimization Our browser and caching strategy is nowadays so sophisticated that
+  // this only introduces unnecessary bagage.
+  const files: string[] = true
+    ? []
+    : ((await getFilePathsInDirectory(entryDir))
+        .filter(isValidFileTest)
+        .map(path => {
+          if (typeof browserAliases === "object") {
+            if (browserAliases[path] === false) {
+              return null;
+            }
 
-        if (browserAliases[path]) {
-          return browserAliases[path];
-        }
-      }
-      return path;
-    })
-    .filter(x => x != null) as string[];
+            if (browserAliases[path]) {
+              return browserAliases[path];
+            }
+          }
+          return path;
+        })
+        .filter(x => x != null) as string[]);
 
   if (main) {
     files.push(join(packagePath, main));

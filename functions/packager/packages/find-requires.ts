@@ -53,9 +53,10 @@ function buildRequireObject(
     return existingContents;
   }
 
-  existingContents[fileData.path].requires = extractedRequires;
+  existingContents[fileData.path].content = extractedRequires.newCode;
+  existingContents[fileData.path].requires = extractedRequires.requires;
 
-  extractedRequires.forEach(requirePath => {
+  extractedRequires.requires.forEach(requirePath => {
     let newPath = null;
     try {
       newPath = rewritePath(requirePath, filePath, packagePath);
