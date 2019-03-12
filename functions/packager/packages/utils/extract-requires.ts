@@ -27,6 +27,7 @@ export default function exportRequires(code: string) {
   try {
     result = babel.transformSync(code, {
       ast: true,
+      sourceType: "script",
       plugins: [
         "@babel/plugin-transform-modules-commonjs",
         nodeEnvReplacerPlugin,
