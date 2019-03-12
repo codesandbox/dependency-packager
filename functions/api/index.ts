@@ -124,7 +124,7 @@ function getS3BundlePath(dependencies: IDependencies) {
         // Paths starting with slashes don't work with cloudfront, even escaped. So we remove the slashes
         dep =>
           `${encodeURIComponent(dep.replace("/", "-").replace("@", ""))}@${
-            dependencies[dep]
+          dependencies[dep]
           }`,
       )
       .join("+") +
@@ -141,7 +141,7 @@ function generateDependency(
       {
         FunctionName: `codesandbox-packager-v2-${
           process.env.SERVERLESS_STAGE
-        }-packager`,
+          }-packager`,
         Payload: JSON.stringify({
           name,
           version,
@@ -151,7 +151,7 @@ function generateDependency(
         if (error) {
           error.message = `Error while packaging ${name}@${version}: ${
             error.message
-          }`;
+            }`;
 
           reject(error);
           return;
@@ -200,7 +200,7 @@ export async function http(event: any, context: Context, cb: Callback) {
     }
 
     // Add node-libs-browser
-    dependencies["node-libs-browser"] = "2.0.0";
+    dependencies["node-libs-browser"] = "2.2.0";
 
     console.log("Packaging '" + escapedPackages + "'");
 
@@ -216,7 +216,7 @@ export async function http(event: any, context: Context, cb: Callback) {
       Object.keys(dependencies).map(async depName => {
         const depPath = `v${VERSION}/packages/${depName}/${
           dependencies[depName]
-        }.json`;
+          }.json`;
         const s3Object = await getFileFromS3(depPath);
 
         if (s3Object && s3Object.Body != null) {
@@ -241,9 +241,9 @@ export async function http(event: any, context: Context, cb: Callback) {
           if (data === null) {
             throw new Error(
               "An unknown error happened while packaging the dependency " +
-                depName +
-                "@" +
-                dependencies[depName],
+              depName +
+              "@" +
+              dependencies[depName],
             );
           } else if ("error" in data) {
             // The request probably expired already, so we set a cache that can be returned when the next request comes in
