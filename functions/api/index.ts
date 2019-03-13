@@ -100,6 +100,7 @@ function saveFileToS3(
         Key: keyPath, // don't allow slashes
         Body: content,
         ContentType: contentType,
+        CacheControl: 'public, max-age=31536000',
       },
       (err, response) => {
         if (err) {
