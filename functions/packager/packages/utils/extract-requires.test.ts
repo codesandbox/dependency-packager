@@ -6,7 +6,7 @@ describe("extractRequires", () => {
       import React from 'react';
     `;
 
-    expect(extractRequires(code)).toEqual(["react"]);
+    expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
   it("can find require statements", () => {
@@ -14,7 +14,7 @@ describe("extractRequires", () => {
       const react = require('react');
     `;
 
-    expect(extractRequires(code)).toEqual(["react"]);
+    expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
   it("can find dynamic require statements", () => {
@@ -22,7 +22,7 @@ describe("extractRequires", () => {
     const react = import('react');
   `;
 
-    expect(extractRequires(code)).toEqual(["react"]);
+    expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
   it("can find multiple statements", () => {
@@ -36,7 +36,7 @@ describe("extractRequires", () => {
       }
     `;
 
-    expect(extractRequires(code)).toEqual([
+    expect(extractRequires(code).requires).toEqual([
       "angular",
       "./test",
       "react",
@@ -49,6 +49,6 @@ describe("extractRequires", () => {
       const reactDom = import('react-dom').then(dom => dom.render('a'));
     `;
 
-    expect(extractRequires(code)).toEqual(["react-dom"]);
+    expect(extractRequires(code).requires).toEqual(["react-dom"]);
   });
 });

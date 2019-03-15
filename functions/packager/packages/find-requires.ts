@@ -53,9 +53,10 @@ function buildRequireObject(
     return existingContents;
   }
 
-  existingContents[fileData.path].requires = extractedRequires;
+  existingContents[fileData.path].content = extractedRequires.newCode;
+  existingContents[fileData.path].requires = extractedRequires.requires;
 
-  extractedRequires.forEach(requirePath => {
+  extractedRequires.requires.forEach(requirePath => {
     let newPath = null;
     try {
       newPath = rewritePath(requirePath, filePath, packagePath);
@@ -134,18 +135,18 @@ export default async function findRequires(
   // include the default included files. Let the client decide which other files
   // to download.
   const relativeFiles =
-    sizeMB > 8 &&
-    !packageInfos[packageJSONPath].main &&
-    !packageInfos[packageJSONPath].module &&
-    !packageInfos[packageJSONPath].unpkg
+    packageName === 'node-libs-browser' || (sizeMB > 8 &&
+      !packageInfos[packageJSONPath].main &&
+      !packageInfos[packageJSONPath].module &&
+      !packageInfos[packageJSONPath].unpkg)
       ? {}
       : Object.keys(files).reduce(
-          (total, next) => ({
-            ...total,
-            [next.replace(rootPath, "")]: files[next],
-          }),
-          {},
-        );
+        (total, next) => ({
+          ...total,
+          [next.replace(rootPath, "")]: files[next],
+        }),
+        {},
+      );
 
   return relativeFiles;
 }

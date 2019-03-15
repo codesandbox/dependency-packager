@@ -1,88 +1,101 @@
-import * as acorn from "acorn";
-import {
-  CallExpression,
-  ImportDeclaration,
-  Literal,
-  MemberExpression,
-} from "estree";
-/* tslint:disable */
-const walk = require("acorn/dist/walk");
+import * as babel from "@babel/core";
+import traverse, { NodePath } from "@babel/traverse";
+import { Identifier, MemberExpression, StringLiteral } from "@babel/types";
 
-require("acorn-dynamic-import/lib/inject").default(acorn);
-/* tslint:enable */
+function nodeEnvReplacerPlugin({ types: t }: { types: any }) {
+  return {
+    name: "transform-node-env-inline",
+    visitor: {
+      MemberExpression(path: NodePath<MemberExpression>) {
+        if (path.matchesPattern("process.env.NODE_ENV")) {
+          path.replaceWith(t.valueToNode("development"));
 
-const ECMA_VERSION = 2017;
-
-type NewCallExpression = CallExpression & {
-  callee: {
-    type: "Import";
-    name: string;
-  };
-} & {
-  callee: {
-    type: "MemberExpression";
-    object: {
-      type: string;
-      name: string;
-    };
-    property: {
-      type: string;
-      name: string;
-    };
-  };
-};
-
-export default function exportRequires(code: string) {
-  const ast = acorn.parse(code, {
-    ecmaVersion: ECMA_VERSION,
-    locations: true,
-    plugins: {
-      dynamicImport: true,
-    },
-    ranges: true,
-    sourceType: "module",
-  });
-
-  const requires: string[] = [];
-
-  walk.simple(
-    ast,
-    {
-      ImportDeclaration(node: ImportDeclaration) {
-        if (typeof node.source.value === "string") {
-          requires.push(node.source.value);
-        }
-      },
-      CallExpression(node: NewCallExpression) {
-        if (
-          /* require() */ (node.callee.type === "Identifier" &&
-            node.callee.name === "require") ||
-          node.callee.type === "Import" ||
-          /* require.resolve */ (node.callee.type === "MemberExpression" &&
-            node.callee.object.name &&
-            node.callee.object.name === "require" &&
-            node.callee.property.name &&
-            node.callee.property.name === "resolve")
-        ) {
-          if (
-            node.arguments.length === 1 &&
-            node.arguments[0].type === "Literal"
-          ) {
-            const literalArgument = node.arguments[0] as Literal;
-            if (typeof literalArgument.value === "string") {
-              requires.push(literalArgument.value);
+          if (path.parentPath.isBinaryExpression()) {
+            const evaluated = path.parentPath.evaluate();
+            if (evaluated.confident) {
+              path.parentPath.replaceWith(t.valueToNode(evaluated.value));
             }
           }
         }
       },
     },
-    {
-      ...walk.base,
-      Import(node: any, st: any, c: any) {
-        // Do nothing
-      },
-    },
-  );
+  };
+}
 
-  return requires;
+export default function exportRequires(code: string) {
+  let result: babel.BabelFileResult | null;
+  try {
+    result = babel.transformSync(code, {
+      ast: true,
+      sourceType: "script",
+      plugins: [
+        "@babel/plugin-transform-modules-commonjs",
+        nodeEnvReplacerPlugin,
+        "minify-dead-code-elimination",
+      ],
+      parserOpts: {
+        plugins: [
+          "dynamicImport",
+          "exportDefaultFrom",
+          "exportNamespaceFrom",
+          "objectRestSpread",
+          "typescript",
+          "classProperties",
+          "classPrivateProperties",
+          "classPrivateMethods",
+        ],
+      },
+    });
+  } catch (e) {
+    result = null;
+    console.error(e);
+  }
+
+  const requires: string[] = [];
+  let newCode = code;
+
+  if (result) {
+    const { ast, code: transformedCode } = result;
+
+    if (transformedCode) {
+      newCode = transformedCode;
+    }
+
+    if (ast) {
+      traverse(ast, {
+        ImportDeclaration(node) {
+          const value = node.node.source.value;
+          if (typeof value === "string") {
+            requires.push(value);
+          }
+        },
+        CallExpression(path) {
+          const { node } = path;
+
+          if (
+            /* require() */ (node.callee.type === "Identifier" &&
+              node.callee.name === "require") ||
+            /* import() */ node.callee.type === "Import" ||
+            /* require.resolve */ (node.callee.type === "MemberExpression" &&
+              (node.callee.object as Identifier).name &&
+              (node.callee.object as Identifier).name === "require" &&
+              node.callee.property.name &&
+              node.callee.property.name === "resolve")
+          ) {
+            if (
+              node.arguments.length === 1 &&
+              node.arguments[0].type === "StringLiteral"
+            ) {
+              const literalArgument = node.arguments[0] as StringLiteral;
+              if (typeof literalArgument.value === "string") {
+                requires.push(literalArgument.value);
+              }
+            }
+          }
+        },
+      });
+    }
+  }
+
+  return { newCode, requires };
 }

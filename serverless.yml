@@ -1,9 +1,9 @@
 service:
-  name: codesandbox-packager
+  name: codesandbox-packager-v2
   runtime: nodejs8.10
 
 custom:
-  s3Bucket: ${opt:stage}.${opt:s3prefix, 'packager'}.packages
+  s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.csb.dev
   region: eu-west-1
   serverless-offline:
     port: 5600
@@ -21,9 +21,9 @@ provider:
         - "s3:*"
         - "s3:DeleteObject"
       Resource: "arn:aws:s3:::${self:custom.s3Bucket}/*"
-    - Effect: 'Allow'
+    - Effect: "Allow"
       Action:
-        - 'lambda:InvokeFunction'
+        - "lambda:InvokeFunction"
       Resource: "*"
 
   environment:
@@ -83,7 +83,6 @@ functions:
   # NOTE: the following uses an "event" event (pubSub event in this case).
   # Please create the corresponding resources in the Google Cloud
   # before deploying this service through Serverless
-
   #second:
   #  handler: event
   #  events:
@@ -111,71 +110,5 @@ resources:
               Effect: Allow
               Principal: "*"
               Action:
-              - s3:GetObject
+                - s3:GetObject
               Resource: arn:aws:s3:::${self:custom.s3Bucket}/*
-
-    # PackageS3LoggingBucket:
-    #   Type: AWS::S3::Bucket
-    #   Properties:
-    #     BucketName: packager.distribution.logging
-
-    PackageS3BucketCDN:
-      Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          Origins:
-            - DomainName: ${self:custom.s3Bucket}.s3.amazonaws.com
-              ## An identifier for the origin which must be unique within the distribution
-              Id: PackagerS3Bucket
-              CustomOriginConfig:
-                HTTPPort: 80
-                HTTPSPort: 443
-                OriginProtocolPolicy: https-only
-              ## In case you want to restrict the bucket access use S3OriginConfig and remove CustomOriginConfig
-              # S3OriginConfig:
-              #   OriginAccessIdentity: origin-access-identity/cloudfront/E127EXAMPLE51Z
-          Enabled: 'true'
-          ## Uncomment the following section in case you are using a custom domain
-          # Aliases:
-          # - mysite.example.com
-          # DefaultRootObject: index.html
-          CustomErrorResponses:
-            - ErrorCode: 500
-              ErrorCachingMinTTL: 5
-            - ErrorCode: 403
-              ErrorCachingMinTTL: 0
-            - ErrorCode: 404
-              ErrorCachingMinTTL: 0
-          DefaultCacheBehavior:
-            Compress: 'true'
-            AllowedMethods:
-              - DELETE
-              - GET
-              - HEAD
-              - OPTIONS
-              - PATCH
-              - POST
-              - PUT
-            ## The origin id defined above
-            TargetOriginId: PackagerS3Bucket
-            ## Defining if and how the QueryString and Cookies are forwarded to the origin which in this case is S3
-            ForwardedValues:
-              QueryString: 'false'
-              Cookies:
-                Forward: none
-            ## The protocol that users can use to access the files in the origin. To allow HTTP use `allow-all`
-            ViewerProtocolPolicy: redirect-to-https
-          ## The certificate to use when viewers use HTTPS to request objects.
-          ViewerCertificate:
-            CloudFrontDefaultCertificate: 'true'
-          ## Uncomment the following section in case you want to enable logging for CloudFront requests
-          # Logging:
-          #   IncludeCookies: 'false'
-          #   Bucket: packager.distribution.logging.s3.amazonaws.com
-          #   Prefix: packagers3logging
-  Outputs:
-    S3PackagesCloudFrontOutput:
-      Value:
-        'Fn::GetAtt': [ PackageS3BucketCDN, DomainName ]
-#  imports:
-#    - path: my_template.jinja
