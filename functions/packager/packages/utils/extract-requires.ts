@@ -1,6 +1,12 @@
 import * as babel from "@babel/core";
 import traverse, { NodePath } from "@babel/traverse";
-import { Identifier, MemberExpression, StringLiteral } from "@babel/types";
+import {
+  BinaryExpression,
+  Identifier,
+  MemberExpression,
+  StringLiteral,
+} from "@babel/types";
+import { uniq } from "lodash";
 
 function nodeEnvReplacerPlugin({ types: t }: { types: any }) {
   return {
@@ -24,10 +30,12 @@ function nodeEnvReplacerPlugin({ types: t }: { types: any }) {
 
 export default function exportRequires(code: string) {
   let result: babel.BabelFileResult | null;
+  let forceTranspile = false;
+
   try {
     result = babel.transformSync(code, {
       ast: true,
-      sourceType: "script",
+      sourceType: code.includes("import ") ? "module" : "script",
       plugins: [
         "@babel/plugin-transform-modules-commonjs",
         nodeEnvReplacerPlugin,
@@ -48,6 +56,7 @@ export default function exportRequires(code: string) {
     });
   } catch (e) {
     result = null;
+    forceTranspile = true;
     console.error(e);
   }
 
@@ -82,13 +91,26 @@ export default function exportRequires(code: string) {
               node.callee.property.name &&
               node.callee.property.name === "resolve")
           ) {
-            if (
-              node.arguments.length === 1 &&
-              node.arguments[0].type === "StringLiteral"
-            ) {
-              const literalArgument = node.arguments[0] as StringLiteral;
-              if (typeof literalArgument.value === "string") {
-                requires.push(literalArgument.value);
+            if (node.arguments.length === 1) {
+              if (node.arguments[0].type === "StringLiteral") {
+                const literalArgument = node.arguments[0] as StringLiteral;
+                if (typeof literalArgument.value === "string") {
+                  requires.push(literalArgument.value);
+                }
+              } else if (node.arguments[0].type === "BinaryExpression") {
+                // Handle require('./' + a + '.js');
+                const binaryArgument = node.arguments[0] as BinaryExpression;
+
+                if (binaryArgument.left.type === "BinaryExpression") {
+                  const secondBinaryArgument = binaryArgument.left as BinaryExpression;
+                  if (secondBinaryArgument.left.type === "StringLiteral") {
+                    requires.push(`glob:${secondBinaryArgument.left.value}`);
+                  }
+                } else if (binaryArgument.left.type === "StringLiteral") {
+                  const secondArgument = binaryArgument.left as StringLiteral;
+
+                  requires.push(`glob:${secondArgument.value}`);
+                }
               }
             }
           }
@@ -97,5 +119,5 @@ export default function exportRequires(code: string) {
     }
   }
 
-  return { newCode, requires };
+  return { newCode, forceTranspile, requires: uniq(requires) };
 }

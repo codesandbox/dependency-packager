@@ -25,6 +25,15 @@ describe("extractRequires", () => {
     expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
+  it("returns should-transpile for dynamic dependencies", () => {
+    const code = `
+    const react = require('./' + a);
+    const bah = require('./aaa/' + a + '.js');
+  `;
+
+    expect(extractRequires(code).requires).toEqual(["glob:./", "glob:./aaa/"]);
+  });
+
   it("can find multiple statements", () => {
     const code = `
       import angular from 'angular';

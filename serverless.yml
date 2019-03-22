@@ -3,7 +3,7 @@ service:
   runtime: nodejs8.10
 
 custom:
-  s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.csb.dev
+  s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.codesandbox.io
   region: eu-west-1
   serverless-offline:
     port: 5600

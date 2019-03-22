@@ -7,6 +7,8 @@ import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
 
 import * as browserResolve from "browser-resolve";
+// @ts-ignore
+import * as readFiles from "recursive-readdir-sync";
 import { getReasonFiles, isReason } from "./reason-downloader";
 
 interface IAliases {
@@ -21,9 +23,6 @@ export interface IFileData {
 }
 
 function rewritePath(path: string, currentPath: string, packagePath: string) {
-  const relativePath = nodeResolvePath(join(dirname(currentPath), path));
-  const isDependency = /^(\w|@\w)/.test(path);
-
   return browserResolve.sync(path, { filename: currentPath });
 }
 
@@ -57,19 +56,36 @@ function buildRequireObject(
   existingContents[fileData.path].requires = extractedRequires.requires;
 
   extractedRequires.requires.forEach(requirePath => {
-    let newPath = null;
+    let newPaths: string[] = [];
     try {
-      newPath = rewritePath(requirePath, filePath, packagePath);
+      if (requirePath.startsWith("glob:")) {
+        const originalPath = requirePath.replace("glob:", "");
+
+        const files: string[] = readFiles(
+          join(dirname(filePath), originalPath),
+        );
+
+        console.log("got a glob, checked", originalPath);
+        console.log(files);
+
+        newPaths = files
+          .filter(p => p.endsWith(".js"))
+          .map(p => rewritePath(p, filePath, packagePath));
+      } else {
+        newPaths = [rewritePath(requirePath, filePath, packagePath)];
+      }
     } catch (e) {
       console.warn(`Couldn't find ${requirePath}`);
       return;
     }
 
-    if (!newPath) {
+    if (newPaths.length === 0) {
       return;
     }
 
-    buildRequireObject(newPath, packagePath, existingContents);
+    newPaths.forEach(newPath => {
+      buildRequireObject(newPath, packagePath, existingContents);
+    });
   });
 
   return existingContents;
@@ -135,18 +151,19 @@ export default async function findRequires(
   // include the default included files. Let the client decide which other files
   // to download.
   const relativeFiles =
-    packageName === 'node-libs-browser' || (sizeMB > 8 &&
+    packageName === "node-libs-browser" ||
+    (sizeMB > 8 &&
       !packageInfos[packageJSONPath].main &&
       !packageInfos[packageJSONPath].module &&
       !packageInfos[packageJSONPath].unpkg)
       ? {}
       : Object.keys(files).reduce(
-        (total, next) => ({
-          ...total,
-          [next.replace(rootPath, "")]: files[next],
-        }),
-        {},
-      );
+          (total, next) => ({
+            ...total,
+            [next.replace(rootPath, "")]: files[next],
+          }),
+          {},
+        );
 
   return relativeFiles;
 }
