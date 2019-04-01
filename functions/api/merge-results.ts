@@ -121,14 +121,10 @@ function replaceDependencyInfo(
   depDepName: string,
   newDepDep: IDepDepInfo,
 ) {
-  console.log(
-    "Resolving conflict for " +
-      depDepName +
-      " new version: " +
-      newDepDep.resolved,
-  );
-
   const newPath = `${depDepName}/${newDepDep.resolved}`;
+  console.log(
+    "Resolving conflict for " + depDepName + " replaced path: " + newPath,
+  );
 
   replacePaths(
     r.contents,
@@ -189,6 +185,13 @@ export default function mergeResults(responses: ILambdaResponse[]) {
         rootDependency.version !== newDepDep.resolved && // Sometimes the intersection returns a bad response (eg. for ^beta-4.4.4, so we also just check if resolved is same)
         rootDependency.name !== r.dependency.name // and this dependency doesn't require an older version of itself
       ) {
+        console.log(
+          rootDependency.name,
+          "choosing",
+          rootDependency.version,
+          "over",
+          newDepDep.resolved,
+        );
         // If a root dependency is in conflict with a child dependency, we always
         // go for the root dependency
         replaceDependencyInfo(r, depDepName, newDepDep);
@@ -232,6 +235,14 @@ export default function mergeResults(responses: ILambdaResponse[]) {
             i = -1;
           }
         }
+      } else if (
+        rootDependency &&
+        semver.intersects(rootDependency.version, newDepDep.semver) &&
+        semver.gt(rootDependency.version, newDepDep.resolved)
+      ) {
+        // There's a root dependency and it has a higher version than the transient dependency (but is still compatible),
+        // so we replace all contents of this with the contents of the root dep.
+        replaceContents(response, r, depDepName);
       } else {
         response.dependencyDependencies[depDepName] =
           r.dependencyDependencies[depDepName];

@@ -470,4 +470,28 @@ describe("mergeResults", () => {
       ],
     ).not.toBeFalsy();
   });
+
+  it("takes priority on original dependencies over transient dependency versions", async () => {
+    // https://github.com/CompuIves/codesandbox-client/issues/1355
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
+    const deps = [
+      await downloadFixture("react-pose", "4.0.3"),
+      await downloadFixture("pose-core", "2.0.2"),
+    ];
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+
+    const merge = mergeResults(deps);
+
+    expect(
+      merge.contents["/node_modules/pose-core/package.json"],
+    ).not.toBeFalsy();
+
+    expect(
+      JSON.parse(merge.contents["/node_modules/pose-core/package.json"].content)
+        .version,
+    ).toBe("2.0.2");
+  });
 });
