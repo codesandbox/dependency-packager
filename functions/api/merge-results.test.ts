@@ -472,7 +472,7 @@ describe("mergeResults", () => {
   });
 
   it("takes priority on original dependencies over transient dependency versions", async () => {
-    // https://github.com/CompuIves/codesandbox-client/issues/1355
+    // https://github.com/codesandbox/codesandbox-client/issues/1355
     const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
