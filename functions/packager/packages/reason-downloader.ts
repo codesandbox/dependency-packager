@@ -62,7 +62,6 @@ export async function getReasonFiles(
               // Read all subdirs
               return recursiveReaddir(packagePath).then(f =>
                 f
-                  .map(file => join(packagePath, file))
                   .filter(p => fs.lstatSync(p).isDirectory()),
               );
             }
