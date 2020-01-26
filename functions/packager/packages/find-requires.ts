@@ -18,6 +18,7 @@ interface IAliases {
 export interface IFileData {
   [path: string]: {
     content: string;
+    isModule: boolean;
     requires?: string[];
   };
 }
@@ -39,6 +40,7 @@ function buildRequireObject(
 
   existingContents[fileData.path] = {
     content: fileData.content,
+    isModule: false,
   };
 
   if (!fileData.path.endsWith(".js")) {
@@ -52,10 +54,10 @@ function buildRequireObject(
     return existingContents;
   }
 
-  existingContents[fileData.path].content = extractedRequires.newCode;
   existingContents[fileData.path].requires = extractedRequires.requires;
+  existingContents[fileData.path].isModule = extractedRequires.isModule;
 
-  extractedRequires.requires.forEach(requirePath => {
+  (extractedRequires.requires || []).forEach(requirePath => {
     let newPaths: string[] = [];
     try {
       if (requirePath.startsWith("glob:")) {
@@ -64,9 +66,6 @@ function buildRequireObject(
         const files: string[] = readFiles(
           join(dirname(filePath), originalPath),
         );
-
-        console.log("got a glob, checked", originalPath);
-        console.log(files);
 
         newPaths = files
           .filter(p => p.endsWith(".js"))

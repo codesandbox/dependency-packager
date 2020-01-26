@@ -139,7 +139,7 @@ export async function call(event: any, context: Context, cb: Callback) {
         dependency.version,
     );
 
-    const requireStatements = new Set();
+    const requireStatements = new Set<string>();
     Object.keys(contents).forEach(p => {
       const c = contents[p];
 
