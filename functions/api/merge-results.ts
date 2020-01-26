@@ -157,6 +157,14 @@ const intersects = (v1: string, v2: string) => {
   }
 };
 
+const gt = (v1: string, v2: string) => {
+  try {
+    return semver.gt(v1, v2);
+  } catch (e) {
+    return false;
+  }
+};
+
 export default function mergeResults(responses: ILambdaResponse[]) {
   // For consistency between requests
   const sortedResponses = responses.sort((a, b) =>
@@ -209,10 +217,7 @@ export default function mergeResults(responses: ILambdaResponse[]) {
             intersects(exDepDep.semver, newDepDep.semver) &&
             isEqual(exDepDep.entries, newDepDep.entries)
           ) {
-            const replacingDepDep = semver.gt(
-              newDepDep.resolved,
-              exDepDep.resolved,
-            )
+            const replacingDepDep = gt(newDepDep.resolved, exDepDep.resolved)
               ? newDepDep
               : exDepDep;
 
@@ -237,8 +242,8 @@ export default function mergeResults(responses: ILambdaResponse[]) {
         }
       } else if (
         rootDependency &&
-        semver.intersects(rootDependency.version, newDepDep.semver) &&
-        semver.gt(rootDependency.version, newDepDep.resolved)
+        intersects(rootDependency.version, newDepDep.semver) &&
+        gt(rootDependency.version, newDepDep.resolved)
       ) {
         // There's a root dependency and it has a higher version than the transient dependency (but is still compatible),
         // so we replace all contents of this with the contents of the root dep.
