@@ -86,6 +86,7 @@ export async function getReasonFiles(
               const fileContents = await fs.readFile(filePath);
               files[filePath] = {
                 content: fileContents.toString(),
+                isModule: false,
               };
             }),
           );
