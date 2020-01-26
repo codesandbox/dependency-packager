@@ -78,11 +78,6 @@ async function getContents(
   return { ...contents, ...packageJSONFiles };
 }
 
-// Install git binaries
-/* tslint:disable no-var-requires */
-require("lambda-git")();
-/* tslint:enable */
-
 let packaging = false;
 
 export async function call(event: any, context: Context, cb: Callback) {

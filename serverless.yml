@@ -71,6 +71,8 @@ functions:
 
   packager:
     handler: dist/packager/index.call
+    layers:
+      - arn:aws:lambda:${self:custom.region}:553035198032:layer:git-lambda2:4 # Support git
     package:
       exclude:
         - dist/**
