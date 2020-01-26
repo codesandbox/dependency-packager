@@ -45,31 +45,32 @@ export async function getReasonFiles(
           ? [bsConfig.sources]
           : bsConfig.sources;
 
-      const sourcePaths: Array<string | string[]> = (await Promise.all(
-        sources.map(async srcSpec => {
-          if (typeof srcSpec === "string") {
-            return join(packagePath, srcSpec);
-          }
-
-          if (!srcSpec.type || srcSpec.type === "src") {
-            if (!("subdirs" in srcSpec) || srcSpec.subdirs === false) {
-              return join(packagePath, srcSpec.dir);
+      const sourcePaths: Array<string | string[]> = (
+        await Promise.all(
+          sources.map(async srcSpec => {
+            if (typeof srcSpec === "string") {
+              return join(packagePath, srcSpec);
             }
 
-            if (Array.isArray(srcSpec.subdirs)) {
-              return srcSpec.subdirs.map(subdir => join(packagePath, subdir));
+            if (!srcSpec.type || srcSpec.type === "src") {
+              if (!("subdirs" in srcSpec) || srcSpec.subdirs === false) {
+                return join(packagePath, srcSpec.dir);
+              }
+
+              if (Array.isArray(srcSpec.subdirs)) {
+                return srcSpec.subdirs.map(subdir => join(packagePath, subdir));
+              } else {
+                // Read all subdirs
+                return recursiveReaddir(packagePath).then(f =>
+                  f.filter(p => fs.lstatSync(p).isDirectory()),
+                );
+              }
             } else {
-              // Read all subdirs
-              return recursiveReaddir(packagePath).then(f =>
-                f
-                  .filter(p => fs.lstatSync(p).isDirectory()),
-              );
+              return undefined;
             }
-          } else {
-            return undefined;
-          }
-        }),
-      )).filter(Boolean) as Array<string | string[]>;
+          }),
+        )
+      ).filter(Boolean) as Array<string | string[]>;
 
       const flattenedSources = flatten(sourcePaths);
 

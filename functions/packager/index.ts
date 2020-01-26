@@ -168,9 +168,7 @@ export async function call(event: any, context: Context, cb: Callback) {
         {
           Body: JSON.stringify(response),
           Bucket: BUCKET_NAME,
-          Key: `v${VERSION}/packages/${dependency.name}/${
-            dependency.version
-          }.json`,
+          Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
           ACL: "public-read",
           ContentType: "application/json",
         },

@@ -1,6 +1,6 @@
 service:
   name: codesandbox-packager-v2
-  runtime: nodejs8.10
+  runtime: nodejs12.x
 
 custom:
   s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.codesandbox.io
@@ -10,7 +10,7 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
   memorySize: 3008
   timeout: 300
   region: ${self:custom.region}
