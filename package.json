@@ -4,7 +4,7 @@
   "main": "./src/index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "LOCAL=true node dist",
+    "dev": "LOCAL=true node dist/packager",
     "build": "rimraf ./dist && tsc",
     "deploy:prod": "npm run build && serverless deploy -s prod",
     "deploy:dev": "npm run build && serverless deploy -s dev",

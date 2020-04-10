@@ -57,7 +57,7 @@ function buildRequireObject(
   existingContents[fileData.path].requires = extractedRequires.requires;
   existingContents[fileData.path].isModule = extractedRequires.isModule;
 
-  (extractedRequires.requires || []).forEach(requirePath => {
+  (extractedRequires.requires || []).forEach((requirePath) => {
     let newPaths: string[] = [];
     try {
       if (requirePath.startsWith("glob:")) {
@@ -68,8 +68,8 @@ function buildRequireObject(
         );
 
         newPaths = files
-          .filter(p => p.endsWith(".js"))
-          .map(p => rewritePath(p, filePath, packagePath));
+          .filter((p) => p.endsWith(".js"))
+          .map((p) => rewritePath(p, filePath, packagePath));
       } else {
         newPaths = [rewritePath(requirePath, filePath, packagePath)];
       }
@@ -82,7 +82,7 @@ function buildRequireObject(
       return;
     }
 
-    newPaths.forEach(newPath => {
+    newPaths.forEach((newPath) => {
       buildRequireObject(newPath, packagePath, existingContents);
     });
   });

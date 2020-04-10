@@ -20,7 +20,9 @@ import env from "./config.secret";
 
 const { BUCKET_NAME } = process.env;
 
-Raven.config(env.SENTRY_URL).install();
+if (env.SENTRY_URL) {
+  Raven.config(env.SENTRY_URL!).install();
+}
 
 const s3 = new S3();
 
