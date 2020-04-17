@@ -34,11 +34,11 @@ const s3 = new S3();
  */
 function deleteHardcodedRequires(data: IFileData, deletePath: string) {
   if (data[deletePath]) {
-    Object.keys(data).forEach(p => {
+    Object.keys(data).forEach((p) => {
       const requires = data[p].requires;
       if (requires) {
         data[p].requires = requires.filter(
-          x => path.join(path.dirname(p), x) !== deletePath,
+          (x) => path.join(path.dirname(p), x) !== deletePath,
         );
       }
     });
@@ -104,7 +104,7 @@ export async function call(event: any, context: Context, cb: Callback) {
     try {
       const folders = fs.readdirSync("/tmp");
 
-      folders.forEach(f => {
+      folders.forEach((f) => {
         const p = path.join("/tmp/", f);
         try {
           if (fs.statSync(p).isDirectory() && p !== "/tmp/git") {
@@ -137,11 +137,11 @@ export async function call(event: any, context: Context, cb: Callback) {
     );
 
     const requireStatements = new Set<string>();
-    Object.keys(contents).forEach(p => {
+    Object.keys(contents).forEach((p) => {
       const c = contents[p];
 
       if (c.requires) {
-        c.requires.forEach(r => requireStatements.add(r));
+        c.requires.forEach((r) => requireStatements.add(r));
       }
     });
 
@@ -168,8 +168,9 @@ export async function call(event: any, context: Context, cb: Callback) {
           Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
           ACL: "public-read",
           ContentType: "application/json",
+          CacheControl: "public, max-age=31536000",
         },
-        err => {
+        (err) => {
           if (err) {
             console.log(err);
             throw err;

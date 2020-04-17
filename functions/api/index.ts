@@ -119,7 +119,6 @@ function getS3BundlePath(dependencies: IDependencies) {
   return (
     `v${VERSION}/combinations/` +
     Object.keys(dependencies)
-      .filter((d) => d !== "node-libs-browser")
       .sort()
       .map(
         // Paths starting with slashes don't work with cloudfront, even escaped. So we remove the slashes
