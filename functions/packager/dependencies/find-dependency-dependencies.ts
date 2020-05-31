@@ -2,6 +2,7 @@ import * as resolve from "browser-resolve";
 import { dirname, join } from "path";
 
 import { IPackage } from "../packages/find-package-infos";
+import { packageFilter } from "../utils/resolver";
 
 interface IPackageInfos {
   [depName: string]: IPackage;
@@ -28,6 +29,7 @@ function findDependencies(
 ) {
   const packageJSONPath = resolve.sync(join(dep, "package.json"), {
     basedir,
+    packageFilter,
   });
 
   if (!packageInfos[packageJSONPath]) {
@@ -45,7 +47,7 @@ function findDependencies(
 
   const dependencies = mainPackageInfo.dependencies;
   if (dependencies) {
-    Object.keys(dependencies).forEach(name => {
+    Object.keys(dependencies).forEach((name) => {
       const depPackagePath = resolve.sync(join(name, "package.json"), {
         basedir,
       });

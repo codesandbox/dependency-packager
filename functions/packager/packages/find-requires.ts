@@ -10,6 +10,7 @@ import * as browserResolve from "browser-resolve";
 // @ts-ignore
 import * as readFiles from "recursive-readdir-sync";
 import { getReasonFiles, isReason } from "./reason-downloader";
+import { packageFilter } from "../utils/resolver";
 
 interface IAliases {
   [alias: string]: string | false | null;
@@ -24,7 +25,7 @@ export interface IFileData {
 }
 
 function rewritePath(path: string, currentPath: string, packagePath: string) {
-  return browserResolve.sync(path, { filename: currentPath });
+  return browserResolve.sync(path, { filename: currentPath, packageFilter });
 }
 
 function buildRequireObject(

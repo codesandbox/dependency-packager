@@ -1,8 +1,6 @@
 import { flatten } from "lodash";
 import { fs } from "mz";
-import { basename, dirname, join } from "path";
-
-import nodeResolvePath from "./utils/node-resolve-path";
+import { basename, join } from "path";
 
 export interface IPackage {
   name: string;
@@ -24,12 +22,12 @@ export interface IPackage {
 function getDirectories(path: string): string[] {
   const directories = fs
     .readdirSync(path)
-    .filter(file => !file.startsWith("."))
-    .filter(file => fs.lstatSync(join(path, file)).isDirectory())
-    .map(file => join(path, file));
+    .filter((file) => !file.startsWith("."))
+    .filter((file) => fs.lstatSync(join(path, file)).isDirectory())
+    .map((file) => join(path, file));
 
   return flatten(
-    directories.map(directory => {
+    directories.map((directory) => {
       if (basename(directory).startsWith("@")) {
         // We will check what inside this directory if it starts with an @, because
         // this means that it's under an organization
@@ -40,7 +38,7 @@ function getDirectories(path: string): string[] {
       const directoriesInDirectory = getDirectories(directory);
       // There is a chance of a recursive node_modules, make sure to add it as well
       const nodeModulesInside = directoriesInDirectory.find(
-        d => basename(d) === "node_modules",
+        (d) => basename(d) === "node_modules",
       );
 
       if (nodeModulesInside) {
@@ -53,13 +51,13 @@ function getDirectories(path: string): string[] {
 }
 
 // Fields to check, in this order
-const MAIN_FIELDS = ["browser", "main", "unpkg", "module"];
+const MAIN_FIELDS = ["browser", "module", "main", "unpkg"];
 
 /**
  * Finds the most appropriate main field to use from the package.json
  */
 function getMainField(pkg: IPackage) {
-  return MAIN_FIELDS.map(field => {
+  return MAIN_FIELDS.map((field) => {
     const packageField = pkg[field];
     // It can also be an object, don't allow it in that case
     if (typeof packageField === "string") {
@@ -67,7 +65,7 @@ function getMainField(pkg: IPackage) {
     }
 
     return null;
-  }).find(x => x != null);
+  }).find((x) => x != null);
 }
 
 /**
@@ -106,7 +104,7 @@ export default async function findPackageInfos(
   const result: { [depName: string]: IPackage } = {};
 
   await Promise.all(
-    directories.map(async path => {
+    directories.map(async (path) => {
       const pkgPath = join(path, "package.json");
       if (fs.existsSync(pkgPath)) {
         const contents = (await fs.readFile(pkgPath)).toString();

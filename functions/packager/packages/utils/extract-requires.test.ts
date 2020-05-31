@@ -25,13 +25,12 @@ describe("extractRequires", () => {
     expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
-  it("returns should-transpile for dynamic dependencies", () => {
+  it.only("can find imports from template literals", () => {
     const code = `
-    const react = require('./' + a);
-    const bah = require('./aaa/' + a + '.js');
+    const react = require(\`react\`);
   `;
 
-    expect(extractRequires(code).requires).toEqual(["glob:./", "glob:./aaa/"]);
+    expect(extractRequires(code).requires).toEqual(["react"]);
   });
 
   it("can find multiple statements", () => {
@@ -59,5 +58,13 @@ describe("extractRequires", () => {
     `;
 
     expect(extractRequires(code).requires).toEqual(["react-dom"]);
+  });
+
+  it("doesn't resolve var imports", () => {
+    const code = `
+      const a = require(test)
+    `;
+
+    expect(extractRequires(code).requires).toEqual([]);
   });
 });

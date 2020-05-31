@@ -1,14 +1,11 @@
 import { Callback, Context } from "aws-lambda";
 import * as aws from "aws-sdk";
 import * as LRU from "lru-cache";
-import * as path from "path";
+import * as zlib from "zlib";
 
 import { VERSION } from "../config";
 
-import getHash from "./utils/get-hash";
-
 import parseDependencies from "./dependencies/parse-dependencies";
-import mergeResults from "./merge-results";
 
 const errorCache: LRU.Cache<string, string> = LRU({
   max: 1024,
@@ -98,9 +95,10 @@ function saveFileToS3(
       {
         Bucket: BUCKET_NAME,
         Key: keyPath, // don't allow slashes
-        Body: content,
+        Body: zlib.gzipSync(content),
         ContentType: contentType,
         CacheControl: "public, max-age=31536000",
+        ContentEncoding: "gzip",
       },
       (err, response) => {
         if (err) {
@@ -197,7 +195,8 @@ export async function http(event: any, context: Context, cb: Callback) {
 
     console.log("Packaging '" + escapedPackages + "'");
 
-    const bundlePath = getS3BundlePath(dependencies);
+    const depName = Object.keys(dependencies)[0];
+    const bundlePath = `v${VERSION}/packages/${depName}/${dependencies[depName]}.json`;
     const bundle = await getFileFromS3(bundlePath);
 
     if (bundle && bundle.Body) {
@@ -254,9 +253,6 @@ export async function http(event: any, context: Context, cb: Callback) {
         }
 
         if (receivedData.length === Object.keys(dependencies).length) {
-          const body = JSON.stringify(mergeResults(receivedData));
-
-          await saveFileToS3(bundlePath, body);
           cb(undefined, getResponse(bundlePath));
         }
       }),

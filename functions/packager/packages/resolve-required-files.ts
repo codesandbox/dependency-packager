@@ -1,16 +1,11 @@
-import { flatten } from "lodash";
 import { fs } from "mz";
 import { basename, dirname, join } from "path";
 import { IPackage } from "./find-package-infos";
 
 const BLACKLISTED_DIRS = [
-  "_esm5",
-  "_esm2015",
   "demo",
   "docs",
   "benchmark",
-  "es6",
-  "es",
   "flow-typed",
   "src",
   "bundles",
@@ -28,40 +23,34 @@ async function getFilePathsInDirectory(path: string): Promise<string[]> {
 
   const entriesWithMetadata = await Promise.all(
     entries
-      .map(fPath => join(path, fPath))
-      .map(async entry => {
+      .map((fPath) => join(path, fPath))
+      .map(async (entry) => {
         const meta = await fs.lstat(entry);
 
         return { entry, isDirectory: meta.isDirectory() };
       }),
   );
 
-  let files = entriesWithMetadata.filter(x => !x.isDirectory).map(x => x.entry);
+  let files = entriesWithMetadata
+    .filter((x) => !x.isDirectory)
+    .map((x) => x.entry);
   const childFiles = await Promise.all(
     entriesWithMetadata
-      .filter(x => x.isDirectory)
-      .map(x => x.entry)
-      .filter(x => BLACKLISTED_DIRS.indexOf(basename(x)) === -1)
-      .filter(x => !basename(x).startsWith("."))
+      .filter((x) => x.isDirectory)
+      .map((x) => x.entry)
+      .filter((x) => BLACKLISTED_DIRS.indexOf(basename(x)) === -1)
+      .filter((x) => !basename(x).startsWith("."))
       .map((dir: string) => getFilePathsInDirectory(dir)),
   );
 
-  childFiles.forEach(f => {
+  childFiles.forEach((f) => {
     files = [...files, ...f];
   });
 
   return files;
 }
 
-const DISALLOWED_EXTENSIONS = [
-  "min.js",
-  "umd.js",
-  "node.js",
-  "test.js",
-  "esm.js",
-  "cjs.js",
-  "module.js",
-];
+const DISALLOWED_EXTENSIONS = ["min.js", "umd.js", "node.js", "test.js"];
 const ALLOWED_EXTENSIONS = [
   "json",
   "js",
@@ -74,38 +63,6 @@ const ALLOWED_EXTENSIONS = [
 ];
 
 function isValidFile(packagePath: string, packageInfo: IPackage) {
-  let moduleDir = null;
-  let es2015Dir = null;
-
-  // We don't want to include es2015 and modules folders if we have a main file.
-  // For example, if you have this file structure:
-
-  /*
-  - es2015
-    - index.js
-  - es5
-    - index.js
-  - index.js (main)
-  */
-
-  // We only want to include the index.js and not those subdirs. An example of this
-  // is rxjs.
-  if (typeof packageInfo.module === "string") {
-    moduleDir = dirname(join(packagePath, packageInfo.module))
-      .replace(packagePath, "")
-      .slice(1);
-  }
-
-  if (typeof packageInfo.es2015 === "string") {
-    es2015Dir = dirname(join(packagePath, packageInfo.es2015))
-      .replace(packagePath, "")
-      .slice(1);
-  }
-
-  const blackListedDirs = [...BLACKLISTED_DIRS, moduleDir, es2015Dir].filter(
-    Boolean,
-  ) as string[];
-
   return (filePath: string) => {
     const relDirName = filePath.replace(packagePath, "").slice(1);
     if (basename(filePath).startsWith(".")) {
@@ -113,18 +70,18 @@ function isValidFile(packagePath: string, packageInfo: IPackage) {
     }
 
     if (
-      blackListedDirs.some(dir => {
+      BLACKLISTED_DIRS.some((dir) => {
         return relDirName.startsWith(dir);
       })
     ) {
       return false;
     }
 
-    if (DISALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+    if (DISALLOWED_EXTENSIONS.some((ex) => filePath.endsWith(ex))) {
       return false;
     }
 
-    if (ALLOWED_EXTENSIONS.some(ex => filePath.endsWith(ex))) {
+    if (ALLOWED_EXTENSIONS.some((ex) => filePath.endsWith(ex))) {
       return true;
     }
 
@@ -141,7 +98,7 @@ export default async function resolveRequiredFiles(
   let main =
     typeof packageInfo.browser === "string"
       ? packageInfo.browser
-      : packageInfo.main;
+      : packageInfo.module || packageInfo.main;
 
   let entryDir;
 
@@ -151,8 +108,8 @@ export default async function resolveRequiredFiles(
       main = "index.js";
       entryDir = packagePath;
     } else {
-      entryDir = FALLBACK_DIRS.map(d => join(packagePath, d)).find(
-        dir => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
+      entryDir = FALLBACK_DIRS.map((d) => join(packagePath, d)).find(
+        (dir) => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
       );
     }
   } else {
@@ -188,7 +145,7 @@ export default async function resolveRequiredFiles(
     ? []
     : ((await getFilePathsInDirectory(entryDir))
         .filter(isValidFileTest)
-        .map(path => {
+        .map((path) => {
           if (typeof browserAliases === "object") {
             if (browserAliases[path] === false) {
               return null;
@@ -200,7 +157,7 @@ export default async function resolveRequiredFiles(
           }
           return path;
         })
-        .filter(x => x != null) as string[]);
+        .filter((x) => x != null) as string[]);
 
   if (main) {
     files.push(join(packagePath, main));

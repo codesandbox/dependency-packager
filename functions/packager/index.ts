@@ -5,10 +5,10 @@ import { fs } from "mz";
 import * as path from "path";
 import * as Raven from "raven";
 import * as rimraf from "rimraf";
+import * as zlib from "zlib";
 
 import findDependencyDependencies from "./dependencies/find-dependency-dependencies";
 import installDependencies from "./dependencies/install-dependencies";
-import parseDependency from "./dependencies/parse-dependency";
 
 import findPackageInfos, { IPackage } from "./packages/find-package-infos";
 import findRequires, { IFileData } from "./packages/find-requires";
@@ -163,12 +163,13 @@ export async function call(event: any, context: Context, cb: Callback) {
 
       s3.putObject(
         {
-          Body: JSON.stringify(response),
+          Body: zlib.gzipSync(JSON.stringify(response)),
           Bucket: BUCKET_NAME,
           Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
           ACL: "public-read",
           ContentType: "application/json",
           CacheControl: "public, max-age=31536000",
+          ContentEncoding: "gzip",
         },
         (err) => {
           if (err) {

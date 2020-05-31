@@ -57,14 +57,18 @@ export default function exportRequires(code: string) {
           node.callee.property.name &&
           node.callee.property.name === "resolve")
       ) {
-        if (
-          node.arguments.length === 1 &&
-          node.arguments[0].type === "Literal"
-        ) {
-          const { value } = node.arguments[0];
+        if (node.arguments.length === 1) {
+          if (node.arguments[0].type === "Literal") {
+            const { value } = node.arguments[0];
 
-          if (typeof value === "string") {
-            requires.push(value);
+            if (typeof value === "string") {
+              requires.push(value);
+            }
+          } else if (node.arguments[0].type === "TemplateLiteral") {
+            const { quasis } = node.arguments[0];
+            if (quasis.length === 1) {
+              requires.push(quasis[0].value.raw);
+            }
           }
         }
       }
