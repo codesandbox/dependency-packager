@@ -160,7 +160,19 @@ export default async function resolveRequiredFiles(
         .filter((x) => x != null) as string[]);
 
   if (main) {
-    files.push(join(packagePath, main));
+    [join(packagePath, main), join(packagePath, main, "index.js")].find((p) => {
+      try {
+        const stat = fs.statSync(p);
+
+        if (stat.isFile()) {
+          files.push(p);
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    });
   }
 
   return files;
