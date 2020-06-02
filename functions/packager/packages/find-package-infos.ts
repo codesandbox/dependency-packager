@@ -68,33 +68,6 @@ function getMainField(pkg: IPackage) {
   }).find((x) => x != null);
 }
 
-/**
- * Rewrite the paths of the browser aliases to the relative path to the package
- *
- * @param {{ [path: string]: string }} browser
- * @param {string} packagePath
- */
-function transformBrowserRequires(
-  browser: { [path: string]: string } | string | undefined,
-  packagePath: string,
-): { [path: string]: string } {
-  if (typeof browser !== "object") {
-    return {};
-  }
-
-  return Object.keys(browser).reduce((total, next) => {
-    // It can either be a string or false, if it's false we have to exclude
-    // it from the total bundle.
-
-    const path = browser[next] ? join(packagePath, browser[next]) : false;
-
-    return {
-      ...total,
-      [join(packagePath, next)]: path,
-    };
-  }, {});
-}
-
 export default async function findPackageInfos(
   packageName: string,
   rootPath: string,

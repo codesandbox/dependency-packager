@@ -17,6 +17,8 @@ import getHash from "./utils/get-hash";
 
 import { VERSION } from "../config";
 import env from "./config.secret";
+import browserResolve = require("browser-resolve");
+import { packageFilter } from "./utils/resolver";
 
 const { BUCKET_NAME } = process.env;
 
@@ -80,6 +82,39 @@ async function getContents(
   return { ...contents, ...packageJSONFiles };
 }
 
+/**
+ * Delete `module` field if the module doesn't exist at all
+ */
+function verifyModuleField(pkg: IPackage, pkgLoc: string) {
+  if (!pkg.module) {
+    return;
+  }
+
+  try {
+    const basedir = path.dirname(pkgLoc);
+
+    const found = [
+      path.join(basedir, pkg.module),
+      path.join(basedir, pkg.module, "index,js"),
+      path.join(basedir, pkg.module, "index,mjs"),
+    ].find((p) => {
+      try {
+        const l = fs.statSync(p);
+        return l.isFile();
+      } catch (e) {
+        return false;
+      }
+    });
+
+    if (!found) {
+      pkg.csbInvalidModule = pkg.module;
+      delete pkg.module;
+    }
+  } catch (e) {
+    /* */
+  }
+}
+
 let packaging = false;
 
 export async function call(event: any, context: Context, cb: Callback) {
@@ -125,6 +160,13 @@ export async function call(event: any, context: Context, cb: Callback) {
     await installDependencies(dependency, packagePath);
 
     const packageInfos = await findPackageInfos(dependency.name, packagePath);
+
+    Object.keys(packageInfos).map((pkgJSONPath) => {
+      const pkg = packageInfos[pkgJSONPath];
+
+      verifyModuleField(pkg, pkgJSONPath);
+    });
+
     const contents = await getContents(dependency, packagePath, packageInfos);
 
     console.log(
