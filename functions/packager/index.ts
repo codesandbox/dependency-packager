@@ -95,8 +95,8 @@ function verifyModuleField(pkg: IPackage, pkgLoc: string) {
 
     const found = [
       path.join(basedir, pkg.module),
-      path.join(basedir, pkg.module, "index,js"),
-      path.join(basedir, pkg.module, "index,mjs"),
+      path.join(basedir, pkg.module, "index.js"),
+      path.join(basedir, pkg.module, "index.mjs"),
     ].find((p) => {
       try {
         const l = fs.statSync(p);
