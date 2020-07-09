@@ -6,6 +6,7 @@ import * as path from "path";
 import * as Raven from "raven";
 import * as rimraf from "rimraf";
 import * as zlib from "zlib";
+import fetch from "node-fetch";
 
 import findDependencyDependencies from "./dependencies/find-dependency-dependencies";
 import installDependencies from "./dependencies/install-dependencies";
@@ -21,6 +22,7 @@ import browserResolve = require("browser-resolve");
 import { packageFilter } from "./utils/resolver";
 
 const { BUCKET_NAME } = process.env;
+const SAVE_TO_S3 = !process.env.DISABLE_CACHING;
 
 if (env.SENTRY_URL) {
   Raven.config(env.SENTRY_URL!).install();
@@ -46,6 +48,34 @@ function deleteHardcodedRequires(data: IFileData, deletePath: string) {
     });
     delete data[deletePath];
   }
+}
+
+function saveToS3(
+  dependency: { name: string; version: string },
+  response: object,
+) {
+  if (!BUCKET_NAME) {
+    throw new Error("No bucket has been specified");
+  }
+
+  console.log(`Saving ${dependency} to S3`);
+  s3.putObject(
+    {
+      Body: zlib.gzipSync(JSON.stringify(response)),
+      Bucket: BUCKET_NAME,
+      Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
+      ACL: "public-read",
+      ContentType: "application/json",
+      CacheControl: "public, max-age=31536000",
+      ContentEncoding: "gzip",
+    },
+    (err) => {
+      if (err) {
+        console.log(err);
+        throw err;
+      }
+    },
+  );
 }
 
 async function getContents(
@@ -199,27 +229,7 @@ export async function call(event: any, context: Context, cb: Callback) {
     };
 
     if (process.env.IN_LAMBDA) {
-      if (!BUCKET_NAME) {
-        throw new Error("No bucket has been specified");
-      }
-
-      s3.putObject(
-        {
-          Body: zlib.gzipSync(JSON.stringify(response)),
-          Bucket: BUCKET_NAME,
-          Key: `v${VERSION}/packages/${dependency.name}/${dependency.version}.json`,
-          ACL: "public-read",
-          ContentType: "application/json",
-          CacheControl: "public, max-age=31536000",
-          ContentEncoding: "gzip",
-        },
-        (err) => {
-          if (err) {
-            console.log(err);
-            throw err;
-          }
-        },
-      );
+      saveToS3(dependency, response);
     }
 
     // Cleanup
@@ -246,12 +256,27 @@ export async function call(event: any, context: Context, cb: Callback) {
         dependency: `${dependency.name}@${dependency.version}`,
       },
     });
-    cb(undefined, { error: e.message });
+
+    // We try to call fly, which is a service with much more disk space, retry with this.
+    try {
+      const responseFromFly = await fetch(
+        `https://dependency-packager.fly.dev/${dependency.name}@${dependency.version}`,
+      ).then((x) => x.json());
+
+      if (process.env.IN_LAMBDA) {
+        saveToS3(dependency, responseFromFly);
+      }
+
+      cb(undefined, responseFromFly);
+    } catch (ee) {
+      cb(undefined, { error: ee.message });
+    }
   } finally {
     packaging = false;
   }
 }
 
+const PORT = process.env.PORT || 4545;
 if (!process.env.IN_LAMBDA) {
   /* tslint:disable no-var-requires */
   const express = require("express");
@@ -283,7 +308,7 @@ if (!process.env.IN_LAMBDA) {
     });
   });
 
-  app.listen(4545, () => {
-    /*es*/
+  app.listen(PORT, () => {
+    console.log("Listening on " + PORT);
   });
 }
