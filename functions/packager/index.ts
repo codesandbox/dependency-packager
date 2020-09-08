@@ -161,6 +161,9 @@ export async function call(event: any, context: Context, cb: Callback) {
   if (!hash) {
     return;
   }
+  if (!dependency) {
+    return;
+  }
   const packagePath = path.join("/tmp", hash);
 
   // Cleanup!
@@ -257,19 +260,27 @@ export async function call(event: any, context: Context, cb: Callback) {
       },
     });
 
-    // We try to call fly, which is a service with much more disk space, retry with this.
-    try {
-      const responseFromFly = await fetch(
-        `https://dependency-packager.fly.dev/${dependency.name}@${dependency.version}`,
-      ).then((x) => x.json());
+    if (process.env.IN_LAMBDA) {
+      // We try to call fly, which is a service with much more disk space, retry with this.
+      try {
+        const responseFromFly = await fetch(
+          `https://dependency-packager.fly.dev/${dependency.name}@${dependency.version}`,
+        ).then((x) => x.json());
 
-      if (process.env.IN_LAMBDA) {
-        saveToS3(dependency, responseFromFly);
+        if (responseFromFly.error) {
+          throw new Error(responseFromFly.error);
+        }
+
+        if (process.env.IN_LAMBDA) {
+          saveToS3(dependency, responseFromFly);
+        }
+
+        cb(undefined, responseFromFly);
+      } catch (ee) {
+        cb(undefined, { error: e.message });
       }
-
-      cb(undefined, responseFromFly);
-    } catch (ee) {
-      cb(undefined, { error: ee.message });
+    } else {
+      cb(undefined, { error: e.message });
     }
   } finally {
     packaging = false;
@@ -304,7 +315,11 @@ if (!process.env.IN_LAMBDA) {
       //     result.contents[p].content && result.contents[p].content.length;
       // });
 
-      res.json(result);
+      if (result.error) {
+        res.status(422).json(result);
+      } else {
+        res.json(result);
+      }
     });
   });
 
