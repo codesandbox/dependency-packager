@@ -27,7 +27,7 @@
     "lru-cache": "^4.1.2",
     "meriyah": "^1.9.7",
     "mz": "^2.7.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "npm-package-arg": "^6.0.0",
     "pacote": "^6.0.2",
     "raven": "^2.2.1",
