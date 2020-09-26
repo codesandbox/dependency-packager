@@ -75,7 +75,9 @@ function buildRequireObject(
         newPaths = [rewritePath(requirePath, filePath, packagePath)];
       }
     } catch (e) {
-      console.warn(`Couldn't find ${requirePath}`);
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`Couldn't find ${requirePath}`);
+      }
       return;
     }
 
