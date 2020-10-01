@@ -228,6 +228,7 @@ export async function call(event: any, context: Context, cb: Callback) {
         packagePath,
         packageInfos,
         requireStatements,
+        contents,
       ),
     };
 

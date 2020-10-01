@@ -2,6 +2,7 @@ import * as resolve from "browser-resolve";
 import { dirname, join } from "path";
 
 import { IPackage } from "../packages/find-package-infos";
+import { IFileData } from "../packages/find-requires";
 import { packageFilter } from "../utils/resolver";
 
 interface IPackageInfos {
@@ -17,15 +18,41 @@ interface IDependencyDependenciesInfo {
       entries: string[];
     };
   };
+  dependencyAliases: {
+    [dep: string]: {
+      [dep: string]: string;
+    };
+  };
   peerDependencies: { [depName: string]: string };
+}
+
+function rewriteContents(
+  contents: IFileData,
+  fromPath: string,
+  dependency: string,
+  version: string,
+) {
+  const files = Object.keys(contents).filter((p) =>
+    p.startsWith(fromPath + "/"),
+  );
+
+  files.forEach((f) => {
+    const info = contents[f]!;
+    const relativePath = f.replace(fromPath + "/", "");
+    delete contents[f];
+    const newPath = `/node_modules/${dependency}/${version}/${relativePath}`;
+    contents[newPath] = info;
+  });
 }
 
 function findDependencies(
   dep: string,
   packageInfos: IPackageInfos,
   requiresByDependencies: { [dep: string]: string[] },
+  rootdir: string,
   basedir: string,
   totalObject: IDependencyDependenciesInfo,
+  contents: IFileData,
 ) {
   const packageJSONPath = resolve.sync(join(dep, "package.json"), {
     basedir,
@@ -59,28 +86,52 @@ function findDependencies(
       }
 
       const depPackageInfo = packageInfos[depPackagePath];
+      const isRootDependendency =
+        depPackagePath.split("/node_modules/").length === 2;
 
-      if (totalObject.dependencyDependencies[name]) {
-        if (
-          totalObject.dependencyDependencies[name].parents.indexOf(dep) === -1
-        ) {
-          totalObject.dependencyDependencies[name].parents.push(dep);
+      let aliasedName = name;
+      if (!isRootDependendency) {
+        aliasedName += "/" + depPackageInfo.version;
+      }
+
+      const depDep = totalObject.dependencyDependencies[aliasedName];
+
+      if (!isRootDependendency) {
+        totalObject.dependencyAliases[dep] =
+          totalObject.dependencyAliases[dep] || {};
+
+        rewriteContents(
+          contents,
+          depPackagePath.replace(rootdir, "").replace("/package.json", ""),
+          name,
+          depPackageInfo.version,
+        );
+        totalObject.dependencyAliases[dep][name] = aliasedName;
+      }
+
+      if (depDep) {
+        if (depDep.parents.indexOf(dep) === -1) {
+          depDep.parents.push(dep);
         }
+
         return;
       }
 
-      totalObject.dependencyDependencies[name] = {
+      totalObject.dependencyDependencies[aliasedName] = {
         semver: dependencies[name],
         resolved: depPackageInfo.version,
         parents: [dep],
         entries: (requiresByDependencies[name] || []).sort(),
       };
+
       findDependencies(
         name,
         packageInfos,
         requiresByDependencies,
+        rootdir,
         dirname(depPackagePath),
         totalObject,
+        contents,
       );
     });
   }
@@ -93,10 +144,12 @@ export default function findDependencyDependencies(
   rootPath: string,
   packageInfos: IPackageInfos,
   requires: Set<string>,
+  contents: IFileData,
 ) {
   const totalObject = {
     peerDependencies: {},
     dependencyDependencies: {},
+    dependencyAliases: {},
   };
 
   const requireObject: { [dep: string]: string[] } = {};
@@ -123,7 +176,9 @@ export default function findDependencyDependencies(
     dep.name,
     packageInfos,
     requireObject,
+    rootPath,
     join(rootPath, "node_modules", dep.name),
     totalObject,
+    contents,
   );
 }
