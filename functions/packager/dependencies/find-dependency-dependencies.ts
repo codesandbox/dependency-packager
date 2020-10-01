@@ -30,6 +30,7 @@ function findDependencies(
   const packageJSONPath = resolve.sync(join(dep, "package.json"), {
     basedir,
     packageFilter,
+    extensions: [".wasm", ".mjs", ".js", ".json"],
   });
 
   if (!packageInfos[packageJSONPath]) {
@@ -50,6 +51,7 @@ function findDependencies(
     Object.keys(dependencies).forEach((name) => {
       const depPackagePath = resolve.sync(join(name, "package.json"), {
         basedir,
+        extensions: [".wasm", ".mjs", ".js", ".json"],
       });
 
       if (!packageInfos[depPackagePath]) {
