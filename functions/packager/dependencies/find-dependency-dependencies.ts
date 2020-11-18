@@ -1,4 +1,4 @@
-import * as resolve from "browser-resolve";
+import * as resolve from "resolve";
 import { dirname, join } from "path";
 
 import { IPackage } from "../packages/find-package-infos";

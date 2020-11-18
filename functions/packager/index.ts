@@ -18,7 +18,7 @@ import getHash from "./utils/get-hash";
 
 import { VERSION } from "../config";
 import env from "./config.secret";
-import browserResolve = require("browser-resolve");
+import resolve = require("resolve");
 import { packageFilter } from "./utils/resolver";
 
 const { BUCKET_NAME } = process.env;

@@ -6,7 +6,7 @@ import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
 
-import * as browserResolve from "browser-resolve";
+import * as resolve from "resolve";
 // @ts-ignore
 import * as readFiles from "recursive-readdir-sync";
 import { getReasonFiles, isReason } from "./reason-downloader";
@@ -25,7 +25,7 @@ export interface IFileData {
 }
 
 function rewritePath(path: string, currentPath: string, packagePath: string) {
-  return browserResolve.sync(path, { filename: currentPath, packageFilter });
+  return resolve.sync(path, { basedir: dirname(currentPath), packageFilter });
 }
 
 function buildRequireObject(
