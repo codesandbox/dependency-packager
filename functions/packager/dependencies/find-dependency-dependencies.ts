@@ -46,7 +46,8 @@ function rewriteContents(
 }
 
 function findDependencies(
-  dep: string,
+  dep: string, // This can be an aliased name, we also need the real name to look for the package in fs
+  realDepName: string,
   packageInfos: IPackageInfos,
   requiresByDependencies: { [dep: string]: string[] },
   rootdir: string,
@@ -54,7 +55,7 @@ function findDependencies(
   totalObject: IDependencyDependenciesInfo,
   contents: IFileData,
 ) {
-  const packageJSONPath = resolve.sync(join(dep, "package.json"), {
+  const packageJSONPath = resolve.sync(join(realDepName, "package.json"), {
     basedir,
     packageFilter,
     extensions: [".wasm", ".mjs", ".js", ".json"],
@@ -125,6 +126,7 @@ function findDependencies(
       };
 
       findDependencies(
+        aliasedName,
         name,
         packageInfos,
         requiresByDependencies,
@@ -173,6 +175,7 @@ export default function findDependencyDependencies(
   }
 
   return findDependencies(
+    dep.name,
     dep.name,
     packageInfos,
     requireObject,
