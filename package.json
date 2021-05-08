@@ -23,7 +23,7 @@
     "browser-resolve": "^1.11.2",
     "estree-walker": "^1.0.1",
     "json5": "^1.0.1",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "lru-cache": "^4.1.2",
     "meriyah": "^1.9.7",
     "mz": "^2.7.0",
