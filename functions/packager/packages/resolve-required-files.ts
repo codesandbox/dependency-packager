@@ -163,6 +163,8 @@ export default async function resolveRequiredFiles(
     [
       join(packagePath, main),
       join(packagePath, main + ".js"),
+      join(packagePath, main + ".cjs"),
+      join(packagePath, main + ".mjs"),
       join(packagePath, main, "index.js"),
     ].find((p) => {
       try {
