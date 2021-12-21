@@ -6,7 +6,7 @@ export default function installDependencies(
   dependency: { name: string; version: string },
   packagePath: string,
 ) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const depString = `${dependency.name}@${dependency.version}`;
 
     const spec = npa(depString);
