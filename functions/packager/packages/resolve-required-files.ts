@@ -160,7 +160,11 @@ export default async function resolveRequiredFiles(
         .filter((x) => x != null) as string[]);
 
   if (main) {
-    [join(packagePath, main), join(packagePath, main, "index.js")].find((p) => {
+    [
+      join(packagePath, main),
+      join(packagePath, main + ".js"),
+      join(packagePath, main, "index.js"),
+    ].find((p) => {
       try {
         const stat = fs.statSync(p);
 
