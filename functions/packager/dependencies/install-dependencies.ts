@@ -23,6 +23,7 @@ export default function installDependencies(
       } --no-lockfile --non-interactive --no-bin-links --ignore-engines --skip-integrity-check --cache-folder ./`,
       (err, stdout, stderr) => {
         if (err) {
+          console.warn("got error from install: " + err);
           reject(
             err.message.indexOf("versions") >= 0
               ? new Error("INVALID_VERSION")

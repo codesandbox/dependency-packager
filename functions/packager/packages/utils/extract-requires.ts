@@ -15,7 +15,7 @@ export default function exportRequires(code: string) {
 
   const requires: string[] = [];
 
-  // @ts-expect-error Weird typing conflict
+  // @ts-ignore
   walk.simple(ast, {
     ImportDeclaration(node: meriyah.ESTree.ImportDeclaration) {
       isModule = true;

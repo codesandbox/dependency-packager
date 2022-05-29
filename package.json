@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "LOCAL=true nodemon dist/packager",
     "build": "rimraf ./dist && tsc",
-    "deploy:prod": "npm run build && serverless deploy -s prod",
-    "deploy:dev": "npm run build && serverless deploy -s dev",
+    "deploy:prod": "npm run build && npx serverless@2.7.0 deploy -s prod",
+    "deploy:dev": "npm run build && npx serverless@2.7.0 deploy -s dev",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -36,7 +36,7 @@
     "rimraf": "^2.6.2",
     "semver": "^5.4.1",
     "string-hash": "^1.1.3",
-    "yarn": "^1.21.1",
+    "yarn": "^1.22.17",
     "zlib": "^1.0.5"
   },
   "devDependencies": {

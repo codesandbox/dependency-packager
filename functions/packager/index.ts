@@ -20,6 +20,7 @@ import { VERSION } from "../config";
 import env from "./config.secret";
 import resolve = require("resolve");
 import { packageFilter } from "./utils/resolver";
+import { execSync } from "child_process";
 
 const { BUCKET_NAME } = process.env;
 const SAVE_TO_S3 = !process.env.DISABLE_CACHING;
@@ -149,6 +150,7 @@ function verifyModuleField(pkg: IPackage, pkgLoc: string) {
 }
 
 let packaging = false;
+const packagingDeps = new Set<string>();
 
 export async function call(event: any, context: Context, cb: Callback) {
   /** Immediate response for WarmUP plugin */
@@ -179,7 +181,7 @@ export async function call(event: any, context: Context, cb: Callback) {
         const p = path.join("/tmp/", f);
         try {
           if (fs.statSync(p).isDirectory() && p !== "/tmp/git") {
-            rimraf.sync(p);
+            execSync("rm -rf " + p);
           }
         } catch (e) {
           console.error("Could not delete " + p + ", " + e.message);
@@ -190,6 +192,11 @@ export async function call(event: any, context: Context, cb: Callback) {
       console.log("Continuing packaging...");
     }
   }
+
+  if (packagingDeps.has(hash)) {
+    return;
+  }
+  packagingDeps.add(hash);
 
   packaging = true;
   try {
@@ -288,6 +295,7 @@ export async function call(event: any, context: Context, cb: Callback) {
     }
   } finally {
     packaging = false;
+    packagingDeps.delete(hash);
   }
 }
 
