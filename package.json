@@ -22,7 +22,7 @@
     "babel-plugin-minify-replace": "^0.5.0",
     "browser-resolve": "^1.11.2",
     "estree-walker": "^1.0.1",
-    "json5": "^1.0.1",
+    "json5": "^2.2.2",
     "lodash": "^4.17.4",
     "lru-cache": "^4.1.2",
     "meriyah": "^1.9.7",
