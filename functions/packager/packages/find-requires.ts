@@ -44,7 +44,11 @@ function buildRequireObject(
     isModule: false,
   };
 
-  if (!fileData.path.endsWith(".js")) {
+  if (
+    !fileData.path.endsWith(".js") &&
+    !fileData.path.endsWith(".mjs") &&
+    !fileData.path.endsWith(".cjs")
+  ) {
     return existingContents;
   }
 
