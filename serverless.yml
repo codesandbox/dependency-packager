@@ -5,8 +5,6 @@ service:
 custom:
   s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.codesandbox.io
   region: eu-west-1
-  serverless-offline:
-    port: 5600
 
 provider:
   name: aws
@@ -33,7 +31,6 @@ provider:
 
 plugins:
   - serverless-plugin-warmup
-  - serverless-offline
 
 # needs more granular excluding in production as only the serverless provider npm
 # package should be excluded (and not the whole node_modules directory)
