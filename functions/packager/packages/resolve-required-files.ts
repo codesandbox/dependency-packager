@@ -1,6 +1,10 @@
 import { fs } from "mz";
 import { basename, dirname, join } from "path";
-import { IPackage } from "./find-package-infos";
+import {
+  IPackage,
+  PackageImports,
+  PackageJsonExports,
+} from "./find-package-infos";
 
 const BLACKLISTED_DIRS = [
   "demo",
@@ -90,95 +94,102 @@ function isValidFile(packagePath: string, packageInfo: IPackage) {
 }
 
 const FALLBACK_DIRS = ["dist", "lib", "build"];
+const EXPORTS_KEYS = [
+  "browser",
+  "development",
+  "default",
+  "require",
+  "import",
+] as const;
+
+function getFileFromImport(im: PackageImports & PackageJsonExports): string[] {
+  if (typeof im === "string") {
+    return [im];
+  } else if (Array.isArray(im)) {
+    return im;
+  } else if ("default" in im) {
+    if (!im.default) {
+      return [];
+    }
+
+    return getFileFromImport(im.default);
+  } else {
+    const totalExports = [];
+    for (exports of Object.values(im)) {
+      for (const key of EXPORTS_KEYS) {
+        const imports = exports[key];
+        if (!imports) {
+          continue;
+        }
+        totalExports.push(...getFileFromImport(imports));
+        break;
+      }
+    }
+
+    return totalExports;
+  }
+}
+
+function getExports(packageInfo: IPackage): string[] {
+  if (!packageInfo.exports) {
+    return [];
+  }
+
+  return getFileFromImport(packageInfo.exports);
+}
 
 export default async function resolveRequiredFiles(
   packagePath: string,
   packageInfo: IPackage,
 ) {
-  let main =
-    typeof packageInfo.browser === "string"
-      ? packageInfo.browser
-      : packageInfo.module || packageInfo.main;
+  const entries = getExports(packageInfo);
 
-  let entryDir;
+  let mains: string[];
 
-  if (!main) {
+  if (entries.length === 0) {
+    const main =
+      typeof packageInfo.browser === "string"
+        ? packageInfo.browser
+        : packageInfo.module || packageInfo.main;
+
+    mains = main ? [main] : [];
+  } else {
+    mains = entries;
+  }
+
+  if (mains.length === 0) {
     const indexFileExists = fs.existsSync(join(packagePath, "index.js"));
     if (indexFileExists) {
-      main = "index.js";
-      entryDir = packagePath;
-    } else {
-      entryDir = FALLBACK_DIRS.map((d) => join(packagePath, d)).find(
-        (dir) => fs.existsSync(dir) && fs.lstatSync(dir).isDirectory(),
-      );
+      mains = ["index.js"];
     }
-  } else {
-    entryDir = join(packagePath, dirname(main));
   }
 
-  if (!entryDir) {
-    return [];
-  }
-
-  const browser =
-    typeof packageInfo.browser === "object" ? packageInfo.browser : {};
-
-  const browserAliases: { [p: string]: string | false } = Object.keys(
-    browser,
-  ).reduce((total, path: string) => {
-    const relativePath = join(packagePath, path);
-    let resolvedPath = browser[path];
-    if (resolvedPath !== false) {
-      resolvedPath = join(packagePath, resolvedPath);
-    }
-
-    return {
-      ...total,
-      [relativePath]: resolvedPath,
-    };
-  }, {});
-
-  const isValidFileTest = isValidFile(entryDir, packageInfo);
   // I removed this optimization Our browser and caching strategy is nowadays so sophisticated that
   // this only introduces unnecessary bagage.
-  const files: string[] = true
-    ? []
-    : ((await getFilePathsInDirectory(entryDir))
-        .filter(isValidFileTest)
-        .map((path) => {
-          if (typeof browserAliases === "object") {
-            if (browserAliases[path] === false) {
-              return null;
-            }
+  const files: string[] = [];
 
-            if (browserAliases[path]) {
-              return browserAliases[path];
-            }
+  if (mains.length > 0) {
+    for (const main of mains) {
+      [
+        join(packagePath, main),
+        join(packagePath, main + ".js"),
+        join(packagePath, main + ".cjs"),
+        join(packagePath, main + ".mjs"),
+        join(packagePath, main, "index.js"),
+      ].find((p) => {
+        try {
+          const stat = fs.statSync(p);
+
+          if (stat.isFile()) {
+            files.push(p);
+            return true;
           }
-          return path;
-        })
-        .filter((x) => x != null) as string[]);
-
-  if (main) {
-    [
-      join(packagePath, main),
-      join(packagePath, main + ".js"),
-      join(packagePath, main + ".cjs"),
-      join(packagePath, main + ".mjs"),
-      join(packagePath, main, "index.js"),
-    ].find((p) => {
-      try {
-        const stat = fs.statSync(p);
-
-        if (stat.isFile()) {
-          files.push(p);
-          return true;
+          return false;
+        } catch (e) {
+          return false;
         }
-        return false;
-      } catch (e) {
-        return false;
-      }
-    });
+      });
+    }
   }
 
   return files;

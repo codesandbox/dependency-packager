@@ -2,6 +2,19 @@ import { flatten } from "lodash";
 import { fs } from "mz";
 import { basename, join } from "path";
 
+export type PackageImports =
+  | string
+  | string[]
+  | { default?: string | string[]; types?: string | string[] };
+
+export type PackageJsonExports = {
+  browser?: PackageImports;
+  module?: PackageImports;
+  development?: PackageImports;
+  require?: PackageImports;
+  import?: PackageImports;
+};
+
 export interface IPackage {
   name: string;
   main?: string;
@@ -9,6 +22,9 @@ export interface IPackage {
   unpkg?: string;
   module?: string;
   es2015?: string;
+  exports?: {
+    [file: string]: PackageImports & PackageJsonExports;
+  };
   version: string;
   dependencies?: {
     [depName: string]: string;

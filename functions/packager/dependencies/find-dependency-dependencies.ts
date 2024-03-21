@@ -1,8 +1,10 @@
-import * as resolve from "resolve";
+import * as enhancedResolve from "enhanced-resolve";
+import * as resolve from "browser-resolve";
 import { dirname, join } from "path";
 
 import { IPackage } from "../packages/find-package-infos";
 import { IFileData } from "../packages/find-requires";
+
 import { packageFilter } from "../utils/resolver";
 
 interface IPackageInfos {
@@ -45,6 +47,29 @@ function rewriteContents(
   });
 }
 
+const createdResolve = enhancedResolve.create.sync({
+  exportsFields: ["exports"],
+  conditionNames: ["browser", "development", "default", "require", "import"],
+});
+
+function resolvePackageJSONSync(
+  basedir: string,
+  request: string,
+): string | false {
+  let result;
+  try {
+    result = createdResolve(basedir, request);
+  } catch (e) {
+    result = resolve.sync(request, {
+      basedir,
+      packageFilter,
+      extensions: [".wasm", ".mjs", ".js", ".json"],
+    });
+  }
+
+  return result;
+}
+
 function findDependencies(
   dep: string, // This can be an aliased name, we also need the real name to look for the package in fs
   realDepName: string,
@@ -55,11 +80,14 @@ function findDependencies(
   totalObject: IDependencyDependenciesInfo,
   contents: IFileData,
 ) {
-  const packageJSONPath = resolve.sync(join(realDepName, "package.json"), {
+  let packageJSONPath = resolvePackageJSONSync(
     basedir,
-    packageFilter,
-    extensions: [".wasm", ".mjs", ".js", ".json"],
-  });
+    join(realDepName, "package.json"),
+  );
+
+  if (!packageJSONPath) {
+    return;
+  }
 
   if (!packageInfos[packageJSONPath]) {
     return;
@@ -77,12 +105,12 @@ function findDependencies(
   const dependencies = mainPackageInfo.dependencies;
   if (dependencies) {
     Object.keys(dependencies).forEach((name) => {
-      const depPackagePath = resolve.sync(join(name, "package.json"), {
+      const depPackagePath = resolvePackageJSONSync(
         basedir,
-        extensions: [".wasm", ".mjs", ".js", ".json"],
-      });
+        join(name, "package.json"),
+      );
 
-      if (!packageInfos[depPackagePath]) {
+      if (!depPackagePath || !packageInfos[depPackagePath]) {
         return;
       }
 

@@ -11,5 +11,7 @@ packages/**/*
 # Serverless directories
 .serverless
 
+install
+
 environment.json
 config.secret.*
