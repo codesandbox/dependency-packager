@@ -494,4 +494,27 @@ describe("mergeResults", () => {
         .version,
     ).toBe("2.0.2");
   });
+
+  it.only("can resolve an absolute transient dependency and a semver", async () => {
+    // https://github.com/CompuIves/codesandbox-client/issues/1355
+    const originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
+
+    const deps = [
+      await downloadFixture("0x.js", "6.0.9"),
+      await downloadFixture("ethers", "4.0.28"),
+    ];
+
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+
+    const merge = mergeResults(deps);
+    expect(merge.dependencyAliases.uuid).not.toBeFalsy();
+
+    expect(merge.contents["/node_modules/uuid/package.json"]).not.toBeFalsy();
+
+    expect(
+      JSON.parse(merge.contents["/node_modules/uuid/package.json"].content)
+        .version,
+    ).toBe("2.0.1");
+  });
 });
