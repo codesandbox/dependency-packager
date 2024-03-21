@@ -1,14 +1,17 @@
-service:
-  name: codesandbox-packager-v2
-  runtime: nodejs12.x
+service: codesandbox-packager-v2
 
 custom:
   s3Bucket: ${opt:stage}-${opt:s3prefix, 'packager'}-packages.codesandbox.io
   region: eu-west-1
+  warmup:
+    api:
+      enabled: "prod"
+    packager:
+      enabled: false
 
 provider:
   name: aws
-  runtime: nodejs12.x
+  runtime: nodejs18.x
   memorySize: 3008
   timeout: 300
   region: ${self:custom.region}
@@ -46,7 +49,6 @@ package:
 functions:
   api:
     handler: dist/api/index.http
-    warmup: prod
     memorySize: 1024 # optional, in MB, default is 1024
     package:
       exclude:
@@ -64,7 +66,7 @@ functions:
           request:
             parameters:
               paths:
-                id: true
+                packages: true
 
   packager:
     handler: dist/packager/index.call

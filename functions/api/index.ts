@@ -193,16 +193,16 @@ export async function http(event: any, context: Context, cb: Callback) {
       throw new Error("No BUCKET_NAME provided");
     }
 
-    console.log("Packaging '" + escapedPackages + "'");
-
     const depName = Object.keys(dependencies)[0];
     const bundlePath = `v${VERSION}/packages/${depName}/${dependencies[depName]}.json`;
     const bundle = await getFileFromS3(bundlePath);
 
     if (bundle && bundle.Body) {
+      console.log("Returning cached version for '" + escapedPackages + "'");
       cb(undefined, getResponse(bundlePath));
       return;
     }
+    console.log("Packaging '" + escapedPackages + "'");
 
     await Promise.all(
       Object.keys(dependencies).map(async (depName) => {

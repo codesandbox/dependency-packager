@@ -6,7 +6,7 @@ import resolveRequiredFiles from "./resolve-required-files";
 import extractRequires from "./utils/extract-requires";
 import nodeResolvePath from "./utils/node-resolve-path";
 
-import * as resolve from "resolve";
+import * as resolve from "enhanced-resolve";
 // @ts-ignore
 import * as readFiles from "recursive-readdir-sync";
 import { getReasonFiles, isReason } from "./reason-downloader";
@@ -23,16 +23,33 @@ export interface IFileData {
     requires?: string[];
   };
 }
+const customResolve = resolve.create({
+  exportsFields: ["exports"],
+  conditionNames: ["browser", "development", "default", "require", "import"],
+});
 
-function rewritePath(path: string, currentPath: string, packagePath: string) {
-  return resolve.sync(path, { basedir: dirname(currentPath), packageFilter });
+function rewritePath(
+  path: string,
+  currentPath: string,
+  packagePath: string,
+): Promise<string | false | undefined> {
+  return new Promise((resolve, reject) => {
+    customResolve(dirname(currentPath), path, (err, res) => {
+      if (err) {
+        resolve(false);
+        return;
+      }
+
+      resolve(res);
+    });
+  });
 }
 
-function buildRequireObject(
+async function buildRequireObject(
   filePath: string,
   packagePath: string,
   existingContents: IFileData,
-): IFileData {
+): Promise<IFileData> {
   const fileData = getFileData(filePath, existingContents);
 
   if (!fileData) {
@@ -62,37 +79,47 @@ function buildRequireObject(
   existingContents[fileData.path].requires = extractedRequires.requires;
   existingContents[fileData.path].isModule = extractedRequires.isModule;
 
-  (extractedRequires.requires || []).forEach((requirePath) => {
-    let newPaths: string[] = [];
-    try {
-      if (requirePath.startsWith("glob:")) {
-        const originalPath = requirePath.replace("glob:", "");
+  await Promise.all(
+    (extractedRequires.requires || []).map(async (requirePath) => {
+      let newPaths: string[] = [];
+      try {
+        if (requirePath.startsWith("glob:")) {
+          const originalPath = requirePath.replace("glob:", "");
 
-        const files: string[] = readFiles(
-          join(dirname(filePath), originalPath),
-        );
+          const files: string[] = readFiles(
+            join(dirname(filePath), originalPath),
+          );
 
-        newPaths = files
-          .filter((p) => p.endsWith(".js"))
-          .map((p) => rewritePath(p, filePath, packagePath));
-      } else {
-        newPaths = [rewritePath(requirePath, filePath, packagePath)];
+          newPaths = (
+            await Promise.all(
+              files
+                .filter((p) => p.endsWith(".js"))
+                .map((p) => rewritePath(p, filePath, packagePath)),
+            )
+          ).filter(Boolean) as string[];
+        } else {
+          newPaths = [
+            await rewritePath(requirePath, filePath, packagePath),
+          ].filter(Boolean) as string[];
+        }
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(`Couldn't find ${requirePath}`);
+        }
+        return;
       }
-    } catch (e) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`Couldn't find ${requirePath}`);
+
+      if (newPaths.length === 0) {
+        return;
       }
-      return;
-    }
 
-    if (newPaths.length === 0) {
-      return;
-    }
-
-    newPaths.forEach((newPath) => {
-      buildRequireObject(newPath, packagePath, existingContents);
-    });
-  });
+      await Promise.all(
+        newPaths.map((newPath) =>
+          buildRequireObject(newPath, packagePath, existingContents),
+        ),
+      );
+    }),
+  );
 
   return existingContents;
 }

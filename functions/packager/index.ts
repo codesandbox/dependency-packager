@@ -18,12 +18,12 @@ import getHash from "./utils/get-hash";
 
 import { VERSION } from "../config";
 import env from "./config.secret";
-import resolve = require("resolve");
-import { packageFilter } from "./utils/resolver";
 import { execSync } from "child_process";
 
 const { BUCKET_NAME } = process.env;
 const SAVE_TO_S3 = !process.env.DISABLE_CACHING;
+
+export const BASE_INSTALL_DIR = process.env.BASE_DIR || "/tmp";
 
 if (env.SENTRY_URL) {
   Raven.config(env.SENTRY_URL!).install();
@@ -169,18 +169,18 @@ export async function call(event: any, context: Context, cb: Callback) {
   if (!dependency) {
     return;
   }
-  const packagePath = path.join("/tmp", hash);
+  const packagePath = path.join(BASE_INSTALL_DIR, hash);
 
   // Cleanup!
   if (!packaging) {
-    console.log("Cleaning up /tmp");
+    console.log(`Cleaning up ${BASE_INSTALL_DIR}`);
     try {
-      const folders = fs.readdirSync("/tmp");
+      const folders = fs.readdirSync(BASE_INSTALL_DIR);
 
       folders.forEach((f) => {
-        const p = path.join("/tmp/", f);
+        const p = path.join(BASE_INSTALL_DIR + "/", f);
         try {
-          if (fs.statSync(p).isDirectory() && p !== "/tmp/git") {
+          if (fs.statSync(p).isDirectory() && p !== BASE_INSTALL_DIR + "/git") {
             execSync("rm -rf " + p);
           }
         } catch (e) {
